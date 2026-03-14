@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kreditorforeningen. – forlikskalkulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1e1e2e;
+    --ink-light: #2e2e42;
+    --accent: #e6f535;
+    --white: #ffffff;
+    --bg: #f4f4f0;
+    --bg-dark: #eaeae4;
+    --text: #1e1e2e;
+    --text-muted: #6b6b7a;
+    --border: #ddddd8;
+    --high: #c0392b;
+    --high-bg: #fde8e8;
+    --normal: #2c7a4e;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+    --radius: 8px;
+    --transition: 0.2s ease;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    background: var(--ink);
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+    border-bottom: 3px solid var(--accent);
+  }
+
+  .header-logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--white);
+    letter-spacing: -0.02em;
+  }
+
+  .header-logo span { color: var(--accent); }
+
+  .header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+  }
+
+  .header-sub {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    background: var(--accent);
+    padding: 3px 10px;
+    border-radius: 20px;
+    color: var(--ink);
+  }
+
+  /* ─── LAYOUT ─── */
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  /* ─── PANEL ─── */
+  .panel {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 28px;
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+  }
+
+  .panel-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: lowercase;
+    letter-spacing: -0.01em;
+  }
+
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── FIELDS ─── */
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .field input[type="number"],
+  .field input[type="text"] {
+    width: 100%;
+    padding: 10px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+
+  .field input:focus {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px rgba(30,30,46,0.08);
+    background: var(--white);
+  }
+
+  .field input::placeholder { color: #bbb; }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* ─── SLIDER ─── */
+  .slider-wrap {
+    margin-bottom: 16px;
+  }
+
+  .slider-wrap label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .slider-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--accent);
+    padding: 1px 8px;
+    border-radius: 4px;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--ink);
+    cursor: pointer;
+  }
+
+  .slider-marks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ─── BUTTONS ─── */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-primary {
+    background: var(--ink);
+    color: var(--white);
+    flex: 1;
+  }
+
+  .btn-primary:hover {
+    background: var(--ink-light);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(30,30,46,0.25);
+  }
+
+  .btn-secondary {
+    background: var(--bg-dark);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover { background: var(--border); }
+
+  /* ─── RESULTAT ─── */
+  #resultat {
+    display: none;
+    animation: fadeIn 0.25s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .result-card {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    border-top: 3px solid var(--border);
+  }
+
+  .result-card.primary {
+    background: var(--ink);
+    color: var(--white);
+    border-top-color: var(--accent);
+  }
+
+  .result-card.savings {
+    border-top-color: var(--normal);
+  }
+
+  .result-card.avdrag {
+    border-top-color: #3a7bd5;
+  }
+
+  .result-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .result-card.primary .result-label {
+    color: rgba(255,255,255,0.6);
+  }
+
+  .result-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--ink);
+  }
+
+  .result-card.primary .result-amount {
+    color: var(--accent);
+  }
+
+  .result-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .result-card.primary .result-sub {
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* ─── BREAKDOWN ─── */
+  .breakdown {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+
+  .breakdown-row:last-child { border-bottom: none; }
+
+  .breakdown-row.total {
+    background: var(--bg);
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .breakdown-row.striked {
+    background: var(--high-bg);
+  }
+
+  .breakdown-row.striked .breakdown-amount {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+
+  .breakdown-label { color: var(--text-muted); }
+  .breakdown-row.total .breakdown-label { color: var(--ink); }
+
+  .breakdown-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .breakdown-savings {
+    font-size: 12px;
+    color: var(--normal);
+    font-weight: 600;
+    margin-left: 8px;
+  }
+
+  /* ─── AVDRAGSPLAN ─── */
+  .avdrag-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .avdrag-table th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .avdrag-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--bg-dark);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+  }
+
+  .avdrag-table tr:last-child td { border-bottom: none; }
+  .avdrag-table tr:nth-child(even) td { background: var(--bg); }
+
+  .avdrag-table td.label {
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  /* ─── RENTE SEEKSJON ─── */
+  .rente-result {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .rente-box {
+    flex: 1;
+    min-width: 140px;
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 16px;
+    border-left: 3px solid var(--ink);
+  }
+
+  .rente-box-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .rente-box-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    color: var(--ink);
+  }
+
+  /* ─── TABS ─── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: var(--bg-dark);
+    padding: 4px;
+    border-radius: 9px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 9px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+
+  .tab.active {
+    background: var(--ink);
+    color: var(--white);
+    box-shadow: var(--shadow);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 700px) {
+    .grid { grid-template-columns: 1fr; }
+    .result-grid { grid-template-columns: 1fr; }
+    header { padding: 0 20px; }
+    main { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">kred<span>.</span></div>
+  <div class="header-right">
+    <span class="header-sub">Forlikskalkulator</span>
+    <span class="badge">Verktøy</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('forlik')">⚖ Forlik</button>
+    <button class="tab" onclick="switchTab('avdrag')">📅 Avdragsordning</button>
+    <button class="tab" onclick="switchTab('rente')">% Renter</button>
+  </div>
+
+  <!-- ══════════════════════════════
+       TAB 1 – FORLIK
+  ══════════════════════════════ -->
+  <div class="tab-content active" id="tab-forlik">
+    <div class="grid">
+
+      <!-- INNDATA -->
+      <div class="panel">
+        <div class="panel-title">kravets bestanddeler</div>
+
+        <div class="field">
+          <label>Hovedstol (kr)</label>
+          <input type="number" id="f-hovedstol" placeholder="0" min="0" oninput="beregnForlik()">
+        </div>
+        <div class="field">
+          <label>Inkassogebyr (kr)</label>
+          <input type="number" id="f-gebyr" placeholder="0" min="0" oninput="beregnForlik()">
+        </div>
+        <div class="field">
+          <label>Renter (kr)</label>
+          <input type="number" id="f-renter" placeholder="0" min="0" oninput="beregnForlik()">
+        </div>
+        <div class="field">
+          <label>Rettslige kostnader (kr)</label>
+          <input type="number" id="f-rettslige" placeholder="0" min="0" oninput="beregnForlik()">
+        </div>
+      </div>
+
+      <!-- FORLIKSANDEL -->
+      <div class="panel">
+        <div class="panel-title">forliksandel</div>
+
+        <!-- Total reduksjon -->
+        <div style="background:var(--bg);border-radius:8px;padding:14px;margin-bottom:20px;border:1px solid var(--border);">
+          <div class="slider-wrap" style="margin-bottom:0;">
+            <label>
+              Total reduksjon av kravet
+              <span class="slider-value" id="sl-total-val">0%</span>
+            </label>
+            <input type="range" id="sl-total" min="0" max="100" value="0"
+                   oninput="beregnTotalRabatt(this.value)">
+            <div class="slider-marks"><span>0%</span><span>50%</span><span>100%</span></div>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">
+            Fordeler rabatten automatisk på renter og salær først. Rettslige kostnader holdes utenfor.
+          </div>
+        </div>
+
+        <div class="slider-wrap">
+          <label>
+            Rabatt på renter
+            <span class="slider-value" id="sl-renter-val">0%</span>
+          </label>
+          <input type="range" id="sl-renter" min="0" max="100" value="0"
+                 oninput="document.getElementById('sl-renter-val').textContent=this.value+'%'; nullstillTotalSlider(); beregnForlik()">
+          <div class="slider-marks"><span>0%</span><span>50%</span><span>100%</span></div>
+        </div>
+
+        <div class="slider-wrap">
+          <label>
+            Rabatt på salær
+            <span class="slider-value" id="sl-salar-val">0%</span>
+          </label>
+          <input type="range" id="sl-salar" min="0" max="100" value="0"
+                 oninput="document.getElementById('sl-salar-val').textContent=this.value+'%'; nullstillTotalSlider(); beregnForlik()">
+          <div class="slider-marks"><span>0%</span><span>50%</span><span>100%</span></div>
+        </div>
+
+        <div class="slider-wrap">
+          <label>
+            Rabatt på hovedstol
+            <span class="slider-value" id="sl-hoved-val">0%</span>
+          </label>
+          <input type="range" id="sl-hoved" min="0" max="50" value="0"
+                 oninput="document.getElementById('sl-hoved-val').textContent=this.value+'%'; nullstillTotalSlider(); beregnForlik()">
+          <div class="slider-marks"><span>0%</span><span>25%</span><span>50%</span></div>
+        </div>
+
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
+          Rettslige kostnader inngår alltid fullt i forliksbeløpet.
+        </div>
+
+        <div class="field">
+          <label>Eller skriv inn forliksbeløp direkte (kr)</label>
+          <input type="number" id="f-direkte" placeholder="Overstyr med fast beløp…" min="0"
+                 oninput="beregnForlikDirekte()">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RESULTAT FORLIK -->
+    <div id="resultat-forlik">
+      <div class="panel">
+        <div class="panel-title">resultat</div>
+
+        <div class="result-grid">
+          <div class="result-card primary">
+            <div class="result-label">Forliksbeløp</div>
+            <div class="result-amount" id="r-forlik">kr 0</div>
+            <div class="result-sub" id="r-forlik-sub">–</div>
+          </div>
+          <div class="result-card savings">
+            <div class="result-label">Skyldner sparer</div>
+            <div class="result-amount" id="r-sparer" style="color:var(--normal)">kr 0</div>
+            <div class="result-sub" id="r-sparer-pst">0% av totalkrav</div>
+          </div>
+          <div class="result-card">
+            <div class="result-label">Totalkrav</div>
+            <div class="result-amount" id="r-total">kr 0</div>
+            <div class="result-sub">før forlik</div>
+          </div>
+        </div>
+
+        <div class="breakdown" id="breakdown-forlik"></div>
+
+        <div class="btn-row">
+          <button class="btn-primary" onclick="kopierForlik()">📋 Kopier forliksforslag</button>
+          <button class="btn-secondary" onclick="nullstillForlik()">↺ Nullstill</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       TAB 2 – AVDRAG
+  ══════════════════════════════ -->
+  <div class="tab-content" id="tab-avdrag">
+    <div class="grid">
+
+      <div class="panel">
+        <div class="panel-title">kravets bestanddeler</div>
+
+        <!-- Skyldnertype og MVA -->
+        <div class="field-row">
+          <div class="field">
+            <label>Skyldner</label>
+            <select id="a-skyldner" onchange="oppdaterSalar()" style="width:100%;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:13px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);outline:none;cursor:pointer;">
+              <option value="forbruker">Forbruker (privatperson)</option>
+              <option value="naring">Næringsdrivende</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Oppdragsgiver MVA</label>
+            <select id="a-mva" onchange="oppdaterSalar()" style="width:100%;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:13px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);outline:none;cursor:pointer;">
+              <option value="ja">Fradragsrett for MVA</option>
+              <option value="nei">Ikke fradragsrett for MVA</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Hovedstol (kr)</label>
+            <input type="number" id="a-hovedstol" placeholder="0" min="0" oninput="oppdaterSalar()">
+          </div>
+          <div class="field">
+            <label>Oppr. forfallsdato</label>
+            <input type="text" id="a-forfall" placeholder="dd.mm.åååå">
+          </div>
+        </div>
+
+        <!-- Salær auto-beregnet -->
+        <div style="background:var(--bg);border-radius:8px;padding:14px;margin-bottom:16px;border:1px solid var(--border);">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:10px;">Inkassosalær (beregnet automatisk)</div>
+          <div class="field-row" style="margin-bottom:0;">
+            <div class="field" style="margin-bottom:0;">
+              <label>Lett salær (kr)</label>
+              <input type="number" id="a-salar" placeholder="0" min="0" oninput="beregnAvdrag()"
+                     style="background:var(--white);font-weight:600;">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Dato for BO</label>
+              <input type="text" id="a-bo-dato" placeholder="dd.mm.åååå">
+            </div>
+          </div>
+        </div>
+
+        <!-- Tungt salær – påløpt -->
+        <div id="tung-salar-wrap" style="display:none; margin-bottom:16px;">
+          <div style="background:#f0fdf4;border-left:3px solid var(--normal);border-radius:6px;padding:10px 14px;">
+            <div style="font-size:12px;color:var(--normal);font-weight:600;margin-bottom:8px;">
+              ✓ Tungt salær påløpt – erstatter lett salær
+            </div>
+            <div class="field-row" style="margin-bottom:0;">
+              <div class="field" style="margin-bottom:0;">
+                <label>Totalt salær (tungt) (kr) <span style="color:var(--high);font-size:11px;">● Påløpt</span></label>
+                <input type="number" id="a-tung-salar" placeholder="0" min="0" oninput="beregnAvdrag()"
+                       style="background:var(--white);font-weight:600;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tungt salær – fremtidig -->
+        <div id="tung-salar-fremtidig" style="display:none; margin-bottom:16px;">
+          <div style="background:#fff8e1;border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;font-size:13px;color:#92400e;">
+            ⏰ Tungt salær påløper <strong id="tung-salar-dato">–</strong> – erstatter lett salær, inkluderes i avtalen:
+            <div style="margin-top:8px;">
+              <input type="number" id="a-tung-salar-fremtidig" placeholder="Totalt salær ved tungt (kr)"
+                     style="width:100%;padding:8px 12px;font-family:'DM Mono',monospace;font-size:14px;border:1px solid #f59e0b;border-radius:6px;outline:none;background:#fffdf0;"
+                     min="0">
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Rettslige kostnader (kr)</label>
+          <input type="number" id="a-rettslige" placeholder="0" min="0">
+        </div>
+
+        <div style="border-top:1px solid var(--border); margin: 16px 0;"></div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Antall måneder</label>
+            <input type="number" id="a-mnd" placeholder="beregnes automatisk" min="1" max="120"
+                   oninput="synkMndBelop('mnd')">
+          </div>
+          <div class="field">
+            <label>Månedlig beløp (kr)</label>
+            <input type="number" id="a-mnd-belop" placeholder="beregnes automatisk" min="0"
+                   oninput="synkMndBelop('belop')">
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:-8px;margin-bottom:16px;">
+          Fyll inn ett av feltene – det andre beregnes automatisk.
+        </div>
+
+        <div class="field">
+          <label>Første forfall (valgfritt)</label>
+          <input type="text" id="a-dato" placeholder="dd.mm.åååå">
+        </div>
+
+        <!-- Avdragssalær varsel – vises ved ≥5 avdrag -->
+        <div id="avdragssalar-varsel" style="display:none; margin-bottom:16px;">
+          <div style="background:#fff8e1;border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;font-size:13px;color:#92400e;">
+            ⚠ <strong>Avdragssalær kr 1 125</strong> påløper ved 5 eller flere avdrag.
+            <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+              <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#92400e;font-weight:600;cursor:pointer;">
+                <input type="checkbox" id="a-avdragssalar-fritak" onchange="beregnAvdrag()"
+                       style="width:16px;height:16px;cursor:pointer;accent-color:var(--ink);">
+                Ikke legg til avdragssalær
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Dekningsrekkefølge</label>
+          <select id="a-dekning" onchange="beregnAvdrag()"
+                  style="width:100%;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:14px;
+                         border:1px solid var(--border);border-radius:7px;background:var(--bg);
+                         color:var(--text);outline:none;cursor:pointer;">
+            <option value="SHR">Salær → Hovedstol → Renter (standard)</option>
+            <option value="HSR">Hovedstol → Salær → Renter</option>
+            <option value="RHS">Renter → Hovedstol → Salær</option>
+            <option value="RSH">Renter → Salær → Hovedstol</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">totalbeløp per i dag</div>
+        <div id="avdrag-summary" style="color:var(--text-muted); font-size:14px;">
+          Fyll inn bestanddeler og datoer for å beregne totalbeløp.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="panel" id="avdrag-tabell-panel" style="display:none;">
+      <div class="panel-title">avdragsplan</div>
+      <table class="avdrag-table" id="avdrag-tabell"></table>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="kopierAvdrag()">📋 Kopier avdragsplan</button>
+        <button class="btn-secondary" onclick="nullstillAvdrag()">↺ Nullstill</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       TAB 3 – RENTER
+  ══════════════════════════════ -->
+  <div class="tab-content" id="tab-rente">
+    <div class="grid">
+
+      <div class="panel">
+        <div class="panel-title">renteberegning</div>
+
+        <div class="field">
+          <label>Beløp det beregnes renter av (kr)</label>
+          <input type="number" id="rn-hoved" placeholder="0" min="0" oninput="beregnRente()">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Fra dato</label>
+            <input type="text" id="rn-fra" placeholder="dd.mm.åååå">
+          </div>
+          <div class="field">
+            <label style="display:flex;justify-content:space-between;align-items:center;">
+              Til dato
+              <span onclick="settDagensDato()" style="font-size:11px;font-weight:700;color:var(--ink);background:var(--accent);padding:2px 8px;border-radius:4px;cursor:pointer;letter-spacing:0.05em;">i dag</span>
+            </label>
+            <input type="text" id="rn-til" placeholder="dd.mm.åååå">
+          </div>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:-8px;">
+          Rentesatsen hentes automatisk fra Finanstilsynets historiske satser per halvår.
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">resultat renter</div>
+        <div id="rente-resultat" style="color:var(--text-muted); font-size:14px;">
+          Fyll inn beløp og datoer for å beregne renter.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Foreldelse-informasjon -->
+    <div class="panel" style="border-left:4px solid #3a7bd5;">
+      <div class="panel-title">viktig om foreldelse av renter</div>
+      <div style="font-size:13px; color:var(--text); line-height:1.7; display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px;">
+
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#3a7bd5;margin-bottom:6px;">Generell frist – 3 år</div>
+          Den generelle foreldelsesfristen for renter er <strong>3 år</strong> fra fordringen oppsto eller sist ble avbrutt (foreldelsesloven § 3). Renter som ikke kreves inn foreldes separat.
+        </div>
+
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#3a7bd5;margin-bottom:6px;">Rettslig inndrivelse</div>
+          Forliksklage, dom eller utlegg <strong>avbryter foreldelsen</strong> og starter ny 3-årsfrist. Forsinkelsesrenter fortsetter å løpe på restgjelden til kravet er fullt inndrevet eller foreldet.
+        </div>
+
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#3a7bd5;margin-bottom:6px;">Etter namsfogden – 10 år</div>
+          Hovedkrav og renter <strong>inkludert i utleggsbegjæringen</strong> får 10-års vern. Renter som påløper <em>etter</em> begjæringstidspunktet foreldes etter 3 år med mindre de tas med i en ny utleggsforretning.
+        </div>
+
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);">
+        ⚠ Kalkulatoren beregner renter for den perioden du oppgir. Det er saksbehandlers ansvar å sikre at perioden er juridisk korrekt basert på sakens status og foreldelsesreglene.
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+
+/* ════════════════════════════════
+   TABS
+════════════════════════════════ */
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['forlik','avdrag','rente'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.toggle('active', c.id === 'tab-' + name);
+  });
+}
+
+/* ════════════════════════════════
+   UTILITIES
+════════════════════════════════ */
+
+function kr(n) {
+  return 'kr ' + Math.round(n).toLocaleString('no-NO');
+}
+
+function pst(n, av) {
+  if (!av) return '0%';
+  return (n / av * 100).toFixed(1) + '%';
+}
+
+function parseNO(str) {
+  if (!str) return null;
+  const parts = str.split('.');
+  if (parts.length !== 3) return null;
+  const d = parseInt(parts[0]), m = parseInt(parts[1]) - 1, y = parseInt(parts[2]);
+  if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+  return new Date(y, m, d);
+}
+
+function dagMellom(fra, til) {
+  const diff = til - fra;
+  return Math.round(diff / (1000 * 60 * 60 * 24));
+}
+
+function leggTilMnd(dato, n) {
+  const d = new Date(dato);
+  d.setMonth(d.getMonth() + n);
+  return d;
+}
+
+function formatDato(d) {
+  return d.toLocaleDateString('no-NO', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+/* ════════════════════════════════
+   DATO AUTO-FORMAT
+════════════════════════════════ */
+
+function autoFormatDato(input) {
+  let val = input.value.replace(/\D/g, '');
+
+  if (val.length === 6) {
+    val = val.slice(0,2) + '.' + val.slice(2,4) + '.20' + val.slice(4,6);
+    input.value = val;
+    triggerBeregning(input);
+    return;
+  }
+
+  if (val.length === 8) {
+    val = val.slice(0,2) + '.' + val.slice(2,4) + '.' + val.slice(4,8);
+    input.value = val;
+    triggerBeregning(input);
+    return;
+  }
+
+  if (val.length > 4) {
+    val = val.slice(0,2) + '.' + val.slice(2,4) + '.' + val.slice(4);
+  } else if (val.length > 2) {
+    val = val.slice(0,2) + '.' + val.slice(2);
+  }
+  input.value = val;
+
+  // Beregn kun når dato er fullstendig (10 tegn: dd.mm.åååå)
+  if (val.length === 10) triggerBeregning(input);
+}
+
+function triggerBeregning(input) {
+  const id = input.id;
+  if (id === 'rn-fra' || id === 'rn-til') {
+    beregnRenteFraDato();
+  } else {
+    beregnAvdrag();
+  }
+}
+
+// Koble auto-format til alle datofelt ved oppstart
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('input[placeholder="dd.mm.åååå"]').forEach(input => {
+    input.addEventListener('input', () => autoFormatDato(input));
+  });
+});
+
+/* ════════════════════════════════
+   FORLIK
+════════════════════════════════ */
+
+function kopierTekst(tekst, melding) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(tekst)
+      .then(() => alert(melding || 'Kopiert!'))
+      .catch(() => kopierFallback(tekst, melding));
+  } else {
+    kopierFallback(tekst, melding);
+  }
+}
+
+function kopierFallback(tekst, melding) {
+  const el = document.createElement('textarea');
+  el.value = tekst;
+  el.style.position = 'fixed';
+  el.style.opacity = '0';
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
+  alert(melding || 'Kopiert!');
+}
+
+function nullstillTotalSlider() {
+  document.getElementById('sl-total').value = 0;
+  document.getElementById('sl-total-val').textContent = '0%';
+}
+
+function beregnTotalRabatt(pst) {
+  pst = parseInt(pst);
+  document.getElementById('sl-total-val').textContent = pst + '%';
+  document.getElementById('f-direkte').value = '';
+
+  const v = getForlikInput();
+  const total = v.hoved + v.gebyr + v.renter + v.rettslig;
+  if (!total) return;
+
+  // Rabattbeløp totalt (rettslige holdes utenfor)
+  const rabattKroner = total * (pst / 100);
+
+  // Fordel rabatten: renter først, deretter salær, eventuelt hovedstol
+  let rest = rabattKroner;
+
+  // Rabatt på renter
+  const rabattRenter = Math.min(rest, v.renter);
+  rest -= rabattRenter;
+  const pstRenter = v.renter > 0 ? Math.round((rabattRenter / v.renter) * 100) : 0;
+
+  // Rabatt på salær
+  const rabattSalar = Math.min(rest, v.gebyr);
+  rest -= rabattSalar;
+  const pstSalar = v.gebyr > 0 ? Math.round((rabattSalar / v.gebyr) * 100) : 0;
+
+  // Rabatt på hovedstol (det som eventuelt gjenstår)
+  const rabattHoved = Math.min(rest, v.hoved);
+  const pstHoved = v.hoved > 0 ? Math.min(50, Math.round((rabattHoved / v.hoved) * 100)) : 0;
+
+  // Oppdater slidere
+  document.getElementById('sl-renter').value = pstRenter;
+  document.getElementById('sl-renter-val').textContent = pstRenter + '%';
+  document.getElementById('sl-salar').value = pstSalar;
+  document.getElementById('sl-salar-val').textContent = pstSalar + '%';
+  document.getElementById('sl-hoved').value = pstHoved;
+  document.getElementById('sl-hoved-val').textContent = pstHoved + '%';
+
+  beregnForlik();
+}
+
+function getForlikInput() {
+  return {
+    hoved:    parseFloat(document.getElementById('f-hovedstol').value) || 0,
+    gebyr:    parseFloat(document.getElementById('f-gebyr').value)     || 0,
+    renter:   parseFloat(document.getElementById('f-renter').value)    || 0,
+    rettslig: parseFloat(document.getElementById('f-rettslige').value) || 0,
+  };
+}
+
+function beregnForlik() {
+  // Hvis direkte-beløp er fylt inn, bruk den logikken
+  const direkteVal = document.getElementById('f-direkte').value;
+  if (direkteVal && !isNaN(parseFloat(direkteVal))) {
+    beregnForlikDirekte();
+    return;
+  }
+
+  const v = getForlikInput();
+  const total = v.hoved + v.gebyr + v.renter + v.rettslig;
+
+  const rabattSalar  = parseInt(document.getElementById('sl-salar').value)  / 100;
+  const rabattRenter = parseInt(document.getElementById('sl-renter').value) / 100;
+  const rabattHoved  = parseInt(document.getElementById('sl-hoved').value)  / 100;
+
+  const nyGebyr    = v.gebyr    * (1 - rabattSalar);
+  const nyRenter   = v.renter   * (1 - rabattRenter);
+  const nyRettslig = v.rettslig;
+  const nyHoved    = v.hoved    * (1 - rabattHoved);
+
+  const forlik = nyHoved + nyGebyr + nyRenter + nyRettslig;
+  const sparer = total - forlik;
+
+  visForlikResultat(v, total, forlik, sparer, nyHoved, nyGebyr, nyRenter, nyRettslig);
+}
+
+function beregnForlikDirekte() {
+  const direkte = parseFloat(document.getElementById('f-direkte').value);
+  if (isNaN(direkte)) return;
+
+  const v = getForlikInput();
+  const total = v.hoved + v.gebyr + v.renter + v.rettslig;
+  const sparer = total - direkte;
+
+  // Nullstill slidere
+  ['sl-salar','sl-renter','sl-hoved'].forEach(id => {
+    document.getElementById(id).value = 0;
+    document.getElementById(id + '-val').textContent = '0%';
+  });
+
+  // Riktig logikk for direkte forliksbeløp:
+  // Forliksbeløpet skal primært gå til kreditors hovedstol.
+  // Renter og salær frafalles. Rettslige kostnader betales alltid.
+  // Advarsel hvis forliksbeløpet minus rettslige kostnader er lavere enn full hovedstol.
+
+  // Rettslige kostnader trekkes alltid
+  const nyRettslig = v.rettslig;
+  const tilHovedstol = direkte - v.rettslig;
+
+  // Renter og salær frafalles
+  const nyRenter = 0;
+  const nyGebyr  = 0;
+
+  // Hovedstol: det som gjenstår etter rettslige
+  const nyHoved = Math.max(0, Math.min(tilHovedstol, v.hoved));
+
+  // Advarsel hvis ikke full hovedstol dekkes
+  const hovedstolAvslag = Math.max(0, v.hoved - nyHoved);
+
+  visForlikResultat(v, total, direkte, sparer, nyHoved, nyGebyr, nyRenter, nyRettslig, hovedstolAvslag);
+}
+
+function visForlikResultat(v, total, forlik, sparer, nyHoved, nyGebyr, nyRenter, nyRettslig, hovedstolAvslag = 0) {
+  document.getElementById('r-forlik').textContent = kr(forlik);
+  document.getElementById('r-forlik-sub').textContent = pst(forlik, total) + ' av totalkrav';
+  document.getElementById('r-sparer').textContent = kr(Math.max(0, sparer));
+  document.getElementById('r-sparer-pst').textContent = pst(Math.max(0, sparer), total) + ' av totalkrav';
+  document.getElementById('r-total').textContent = kr(total);
+
+  const bd = document.getElementById('breakdown-forlik');
+
+  // Advarsel hvis avslag på hovedstol
+  let varselHtml = '';
+  if (hovedstolAvslag > 0.01) {
+    varselHtml = `<div style="background:#fde8e8;border-left:3px solid var(--high);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#991b1b;">
+      ⚠ <strong>OBS: Forliket innebærer avslag på hovedstol med ${kr(hovedstolAvslag)}.</strong>
+      Dette er kreditors penger – sørg for at dette er godkjent før forlik inngås.
+    </div>`;
+  }
+
+  const rader = [
+    { label: 'Renter',                             orig: v.renter,   ny: nyRenter  !== null ? nyRenter  : v.renter  },
+    { label: 'Inkassogebyr/salær',                 orig: v.gebyr,    ny: nyGebyr   !== null ? nyGebyr   : v.gebyr   },
+    { label: 'Rettslige kostnader',                orig: v.rettslig, ny: nyRettslig !== null ? nyRettslig : v.rettslig },
+    { label: 'Hovedstol',                          orig: v.hoved,    ny: nyHoved   !== null ? nyHoved   : v.hoved   },
+  ];
+
+  let html = varselHtml;
+  rader.forEach(r => {
+    if (!r.orig) return;
+    const frafallt = r.orig - r.ny;
+    const redusert = frafallt > 0.01;
+    if (redusert) {
+      html += `<div class="breakdown-row striked">
+        <span class="breakdown-label">${r.label}</span>
+        <span>
+          <span class="breakdown-amount">${kr(r.orig)}</span>
+          <span class="breakdown-savings">→ ${kr(r.ny)} (−${kr(frafallt)})</span>
+        </span>
+      </div>`;
+    } else {
+      html += `<div class="breakdown-row">
+        <span class="breakdown-label">${r.label}</span>
+        <span class="breakdown-amount">${kr(r.ny)}</span>
+      </div>`;
+    }
+  });
+
+  html += `<div class="breakdown-row total">
+    <span class="breakdown-label">Forliksbeløp</span>
+    <span class="breakdown-amount">${kr(forlik)}</span>
+  </div>`;
+
+  bd.innerHTML = html;
+}
+
+function kopierForlik() {
+  const v = getForlikInput();
+  const total = v.hoved + v.gebyr + v.renter + v.rettslig;
+  const forlik = parseFloat(document.getElementById('r-forlik').textContent.replace(/[^0-9]/g,'')) || 0;
+  const sparer = total - forlik;
+
+  const tekst =
+    `FORLIKSFORSLAG\n` +
+    `─────────────────────────\n` +
+    `Totalkrav:       ${kr(total)}\n` +
+    `Forliksbeløp:    ${kr(forlik)}\n` +
+    `Skyldner sparer: ${kr(sparer)} (${pst(sparer, total)})\n` +
+    `─────────────────────────\n` +
+    `Bestanddeler:\n` +
+    (v.hoved    ? `  Hovedstol:            ${kr(v.hoved)}\n` : '') +
+    (v.gebyr    ? `  Inkassogebyr/salær:   ${kr(v.gebyr)}\n` : '') +
+    (v.renter   ? `  Renter:               ${kr(v.renter)}\n` : '') +
+    (v.rettslig ? `  Rettslige kostnader:  ${kr(v.rettslig)}\n` : '');
+
+  kopierTekst(tekst, 'Forliksforslag kopiert!');
+}
+
+function nullstillForlik() {
+  ['f-hovedstol','f-gebyr','f-renter','f-rettslige','f-direkte'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  ['sl-total','sl-salar','sl-renter','sl-hoved'].forEach(id => {
+    document.getElementById(id).value = 0;
+    document.getElementById(id + '-val').textContent = '0%';
+  });
+  document.getElementById('breakdown-forlik').innerHTML = '';
+  ['r-forlik','r-sparer','r-total'].forEach(id => {
+    document.getElementById(id).textContent = 'kr 0';
+  });
+  document.getElementById('r-forlik-sub').textContent = '–';
+  document.getElementById('r-sparer-pst').textContent = '0% av totalkrav';
+}
+
+/* ════════════════════════════════
+   AVDRAG
+════════════════════════════════ */
+
+const AVDRAGSGEBYR   = 1125;
+const BO_FRIST_DAGER = 43;
+
+/* ════════════════════════════════
+   FORSINKELSESRENTE – historiske satser
+   Kilde: Finanstilsynet
+   Oppdater RENTE_SATSER når nye satser publiseres (1. jan og 1. jul hvert år)
+════════════════════════════════ */
+
+const RENTE_SATSER = [
+  { fra: new Date(1994,  0,  1), sats: 12.00 },
+  { fra: new Date(2004,  0,  1), sats:  9.25 },
+  { fra: new Date(2004,  6,  1), sats:  8.75 },
+  { fra: new Date(2005,  0,  1), sats:  8.75 },
+  { fra: new Date(2005,  6,  1), sats:  9.00 },
+  { fra: new Date(2006,  0,  1), sats:  9.25 },
+  { fra: new Date(2006,  6,  1), sats:  9.75 },
+  { fra: new Date(2007,  0,  1), sats: 10.50 },
+  { fra: new Date(2007,  6,  1), sats: 11.50 },
+  { fra: new Date(2008,  0,  1), sats: 12.25 },
+  { fra: new Date(2008,  6,  1), sats: 12.75 },
+  { fra: new Date(2009,  0,  1), sats: 10.00 },
+  { fra: new Date(2009,  6,  1), sats:  8.25 },
+  { fra: new Date(2010,  0,  1), sats:  8.75 },
+  { fra: new Date(2010,  6,  1), sats:  9.00 },
+  { fra: new Date(2011,  0,  1), sats:  9.00 },
+  { fra: new Date(2011,  6,  1), sats:  9.25 },
+  { fra: new Date(2012,  0,  1), sats:  8.75 },
+  { fra: new Date(2012,  6,  1), sats:  8.50 },
+  { fra: new Date(2013,  0,  1), sats:  8.50 },
+  { fra: new Date(2013,  6,  1), sats:  9.50 },
+  { fra: new Date(2014,  0,  1), sats:  9.50 },
+  { fra: new Date(2014,  6,  1), sats:  9.50 },
+  { fra: new Date(2015,  0,  1), sats:  9.25 },
+  { fra: new Date(2015,  6,  1), sats:  9.00 },
+  { fra: new Date(2016,  0,  1), sats:  8.75 },
+  { fra: new Date(2016,  6,  1), sats:  8.50 },
+  { fra: new Date(2017,  0,  1), sats:  8.50 },
+  { fra: new Date(2017,  6,  1), sats:  8.50 },
+  { fra: new Date(2018,  0,  1), sats:  8.50 },
+  { fra: new Date(2018,  6,  1), sats:  8.50 },
+  { fra: new Date(2019,  0,  1), sats:  8.75 },
+  { fra: new Date(2019,  6,  1), sats:  9.25 },
+  { fra: new Date(2020,  0,  1), sats:  9.50 },
+  { fra: new Date(2020,  6,  1), sats:  8.00 },
+  { fra: new Date(2021,  0,  1), sats:  8.00 },
+  { fra: new Date(2021,  6,  1), sats:  8.00 },
+  { fra: new Date(2022,  0,  1), sats:  8.50 },
+  { fra: new Date(2022,  6,  1), sats:  9.25 },
+  { fra: new Date(2023,  0,  1), sats: 10.75 },
+  { fra: new Date(2023,  6,  1), sats: 11.75 },
+  { fra: new Date(2024,  0,  1), sats: 12.50 },
+  { fra: new Date(2024,  6,  1), sats: 12.50 },
+  { fra: new Date(2025,  0,  1), sats: 12.50 },
+  { fra: new Date(2025,  6,  1), sats: 12.25 },
+  { fra: new Date(2026,  0,  1), sats: 12.00 },
+  // ↑ Legg til nye satser her når Finanstilsynet publiserer dem
+];
+
+/** Henter rentesats for en gitt dato */
+function rentesatsForDato(dato) {
+  let sats = RENTE_SATSER[0].sats;
+  for (const r of RENTE_SATSER) {
+    if (dato >= r.fra) sats = r.sats;
+    else break;
+  }
+  return sats;
+}
+
+/**
+ * Beregner renter med korrekte halvårlige satser.
+ * Splitter perioden ved hver 1. jan og 1. jul.
+ * Returnerer { totalRente, perioder: [{fra, til, dager, sats, rente}] }
+ */
+function beregnRenterMedSatser(beloep, fraDato, tilDato) {
+  if (!fraDato || !tilDato || tilDato <= fraDato || beloep <= 0) {
+    return { totalRente: 0, perioder: [] };
+  }
+
+  const perioder = [];
+  let gjeldende = new Date(fraDato);
+
+  while (gjeldende < tilDato) {
+    // Finn neste skjæringspunkt (1. jan eller 1. jul)
+    const year = gjeldende.getFullYear();
+    const kandidater = [
+      new Date(year,  6, 1),   // 1. jul samme år
+      new Date(year + 1, 0, 1) // 1. jan neste år
+    ].filter(d => d > gjeldende);
+
+    const nesteSplitt = kandidater.reduce((a, b) => a < b ? a : b);
+    const periodeSlutt = nesteSplitt < tilDato ? nesteSplitt : tilDato;
+
+    const dager = dagMellom(gjeldende, periodeSlutt);
+    const sats  = rentesatsForDato(gjeldende);
+    const rente = beloep * (sats / 100) * (dager / 365);
+
+    perioder.push({ fra: new Date(gjeldende), til: new Date(periodeSlutt), dager, sats, rente });
+    gjeldende = new Date(periodeSlutt);
+  }
+
+  const totalRente = perioder.reduce((s, p) => s + p.rente, 0);
+  return { totalRente, perioder };
+}
+
+/** Daglig rente for gjeldende dato (brukes i avdragsplan) */
+function dagligRenteNaa() {
+  const iDag = new Date();
+  return rentesatsForDato(iDag) / 100 / 365;
+}
+
+/** Daglig rente for en gitt dato */
+function dagligRenteForDato(dato) {
+  return rentesatsForDato(dato) / 100 / 365;
+}
+
+// Satser fra Finanstilsynet 2026
+// Struktur: { grense, forbruker_ja, forbruker_nei, naring_ja, naring_nei }
+// Verdiene er [lett, tungt]
+const SALAR_SATSER = [
+  { grense:    500, fja: [187.50,  375],    fnei: [234.38,  468.75], nja: [281.25,  562.50], nnei: [351.56,  703.13] },
+  { grense:   1000, fja: [262.50,  525],    fnei: [328.13,  656.25], nja: [393.75,  787.50], nnei: [492.19,  984.38] },
+  { grense:   2500, fja: [300,     600],    fnei: [375,     750],    nja: [450,     900],    nnei: [562.50, 1125]    },
+  { grense:  10000, fja: [600,    1200],    fnei: [750,    1500],    nja: [900,    1800],    nnei: [1125,   2250]    },
+  { grense:  50000, fja: [1200,   2400],    fnei: [1500,   3000],    nja: [1800,   3600],    nnei: [2250,   4500]    },
+  { grense: 250000, fja: [2700,   5400],    fnei: [3375,   6750],    nja: [4050,   8100],    nnei: [5062.50,10125]   },
+  { grense: Infinity, fja:[5400, 10800],    fnei: [6750,  13500],    nja: [8100,  16200],    nnei: [10125, 20250]    },
+];
+
+function hentSalar(hovedstol) {
+  const skyldner = document.getElementById('a-skyldner').value;
+  const mva      = document.getElementById('a-mva').value;
+  const key      = skyldner === 'forbruker' ? (mva === 'ja' ? 'fja' : 'fnei')
+                                            : (mva === 'ja' ? 'nja' : 'nnei');
+  for (const rad of SALAR_SATSER) {
+    if (hovedstol <= rad.grense) return { lett: rad[key][0], tungt: rad[key][1] };
+  }
+  const siste = SALAR_SATSER[SALAR_SATSER.length - 1];
+  return { lett: siste[key][0], tungt: siste[key][1] };
+}
+
+function oppdaterSalar() {
+  const hovedstol = parseFloat(document.getElementById('a-hovedstol').value) || 0;
+  if (hovedstol > 0) {
+    const s = hentSalar(hovedstol);
+    // Lett salær settes alltid
+    document.getElementById('a-salar').value = s.lett;
+    // Tungt salær er totalt salær (erstatter lett) – sett begge felt
+    const tungInput = document.getElementById('a-tung-salar');
+    if (tungInput && document.getElementById('tung-salar-wrap').style.display !== 'none') {
+      tungInput.value = s.tungt;
+    }
+    const tungFremtidig = document.getElementById('a-tung-salar-fremtidig');
+    if (tungFremtidig && document.getElementById('tung-salar-fremtidig').style.display !== 'none') {
+      tungFremtidig.value = s.tungt;
+    }
+  }
+  beregnAvdrag();
+}
+
+function synkMndBelop(kilde) {
+  const hovedstol = parseFloat(document.getElementById('a-hovedstol').value) || 0;
+  if (!hovedstol) { beregnAvdrag(); return; }
+  const mndEl   = document.getElementById('a-mnd');
+  const belopEl = document.getElementById('a-mnd-belop');
+  if (kilde === 'mnd') {
+    belopEl.value = '';
+    beregnAvdrag();
+  } else {
+    mndEl.value = '';
+    beregnAvdrag();
+  }
+}
+
+function beregnAvdrag() {
+  const hovedstol  = parseFloat(document.getElementById('a-hovedstol').value) || 0;
+  const lettSalar  = parseFloat(document.getElementById('a-salar').value)      || 0;
+  const rettslige  = parseFloat(document.getElementById('a-rettslige').value)  || 0;
+  const mndInput    = parseInt(document.getElementById('a-mnd').value)       || 0;
+  const belopInput  = parseFloat(document.getElementById('a-mnd-belop').value) || 0;
+  const forfallStr  = document.getElementById('a-forfall').value.trim();
+  const boStr       = document.getElementById('a-bo-dato').value.trim();
+  const datoStr     = document.getElementById('a-dato').value.trim();
+  const dekning     = document.getElementById('a-dekning').value;
+
+  const iDag = new Date(); iDag.setHours(0,0,0,0);
+  const boDato    = parseNO(boStr);
+  const forfDato  = parseNO(forfallStr);
+
+  // ── Tungt salær: automatisk basert på BO ──
+  let tungPalopDato   = null;
+  let tungPaloppt     = false;
+  let tungSalar       = 0;
+
+  if (boDato) {
+    tungPalopDato = new Date(boDato);
+    tungPalopDato.setDate(tungPalopDato.getDate() + BO_FRIST_DAGER);
+    tungPaloppt = iDag >= tungPalopDato;
+  }
+
+  // Auto-fyll tungt salær fra satsene hvis hovedstol er satt
+  if (hovedstol > 0) {
+    const satser = hentSalar(hovedstol);
+    if (tungPaloppt) {
+      const el = document.getElementById('a-tung-salar');
+      if (el && !el.value) el.value = satser.tungt;
+    } else if (boDato) {
+      const el = document.getElementById('a-tung-salar-fremtidig');
+      if (el && !el.value) el.value = satser.tungt;
+    }
+  }
+
+  // Vis/skjul tungt salær UI
+  document.getElementById('tung-salar-wrap').style.display     = tungPaloppt ? 'block' : 'none';
+  document.getElementById('tung-salar-fremtidig').style.display = (boDato && !tungPaloppt) ? 'block' : 'none';
+
+  if (boDato && !tungPaloppt && tungPalopDato) {
+    document.getElementById('tung-salar-dato').textContent = formatDato(tungPalopDato);
+    tungSalar = parseFloat(document.getElementById('a-tung-salar-fremtidig').value) || 0;
+  } else if (tungPaloppt) {
+    tungSalar = parseFloat(document.getElementById('a-tung-salar').value) || 0;
+  }
+
+  if (!hovedstol || (!mndInput && !belopInput)) {
+    document.getElementById('avdrag-summary').innerHTML =
+      '<span style="color:var(--text-muted)">Fyll inn hovedstol og antall måneder eller månedlig beløp.</span>';
+    document.getElementById('avdrag-tabell-panel').style.display = 'none';
+    return;
+  }
+
+  // ── Renter på hovedstol fra forfallsdato til i dag (med historiske satser) ──
+  let rentHovedstolIdag = 0;
+  let dagerHovedstol    = 0;
+  if (forfDato && forfDato < iDag) {
+    dagerHovedstol = dagMellom(forfDato, iDag);
+    const r = beregnRenterMedSatser(hovedstol, forfDato, iDag);
+    rentHovedstolIdag = r.totalRente;
+  }
+
+  // ── Renter på inkassosalær (lett) fra BO+14 dager til i dag ──
+  let rentSalarIdag = 0;
+  if (boDato && lettSalar > 0) {
+    const salarForfalt = new Date(boDato);
+    salarForfalt.setDate(salarForfalt.getDate() + 14);
+    if (salarForfalt < iDag) {
+      rentSalarIdag = beregnRenterMedSatser(lettSalar, salarForfalt, iDag).totalRente;
+    }
+  }
+
+  // ── Renter på tungt salær (fra påløpsdato til i dag hvis påløpt) ──
+  let rentTungIdag = 0;
+  if (tungPaloppt && tungSalar > 0 && tungPalopDato < iDag) {
+    rentTungIdag = beregnRenterMedSatser(tungSalar, tungPalopDato, iDag).totalRente;
+  }
+
+  // ── Avdragssalær – vis varsel ved ≥5, respekter fritak ──
+  // Beregn mnd/belop to-veis før avdragssalær-sjekk
+  let mnd, fastMndBelop;
+  if (mndInput && !belopInput) {
+    mnd          = mndInput;
+    fastMndBelop = null; // beregnes etter total er kjent
+  } else if (belopInput && !mndInput) {
+    // Beregn antall måneder fra beløp – foreløpig estimat (eksakt etter total)
+    fastMndBelop = belopInput;
+    mnd          = null; // beregnes etter total
+  } else {
+    // Begge er satt – bruk antall måneder
+    mnd          = mndInput;
+    fastMndBelop = null;
+  }
+
+  const visAvdragsVarsel = mnd ? mnd >= 5 : false;
+  const fritak = document.getElementById('a-avdragssalar-fritak').checked;
+  document.getElementById('avdragssalar-varsel').style.display = visAvdragsVarsel ? 'block' : 'none';
+  const avdragsgebyr = (mnd && mnd >= 5 && !fritak) ? AVDRAGSGEBYR : 0;
+
+  // ── Totalt salær: tungt erstatter lett (er ikke et tillegg) ──
+  const effektivtSalar = tungPaloppt ? tungSalar : (boDato && tungSalar > 0 ? tungSalar : lettSalar);
+  const totalSalar = effektivtSalar + avdragsgebyr;
+
+  // ── Total renter per i dag ──
+  const totalRenterIdag = rentHovedstolIdag + rentSalarIdag + rentTungIdag;
+
+  // ── Startdato ──
+  let startDato = parseNO(datoStr) || (() => {
+    const d = new Date(); d.setMonth(d.getMonth()+1); d.setDate(1); return d;
+  })();
+
+  // ── Renter fra i dag til første forfall (med korrekt sats) ──
+  const rentegrunnlag = hovedstol + effektivtSalar;
+  const dagerTilForfall = dagMellom(iDag, startDato);
+  const rentFremTilForfall = dagerTilForfall > 0
+    ? beregnRenterMedSatser(rentegrunnlag, iDag, startDato).totalRente
+    : 0;
+
+  // ── Totalt ved første forfall ──
+  const totalVedForfall = hovedstol + totalSalar + rettslige + totalRenterIdag + rentFremTilForfall;
+
+  // ── Sammendrag ──
+  let varsler = '';
+  if (mnd >= 5 && !fritak) {
+    varsler += `<div style="background:#fff8e1;border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e;">
+      ⚠ <strong>Avdragssalær kr 1 125</strong> er lagt til (${mnd || '?'} avdrag).
+    </div>`;
+  } else if (mnd >= 5 && fritak) {
+    varsler += `<div style="background:#f0fdf4;border-left:3px solid var(--normal);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#166534;">
+      ✓ Avdragssalær er <strong>ikke</strong> lagt til – fritak innvilget.
+    </div>`;
+  }
+  if (!tungPaloppt && tungSalar > 0) {
+    varsler += `<div style="background:#fff8e1;border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e;">
+      ⏰ Tungt salær <strong>${kr(tungSalar)}</strong> er inkludert i avtalen – påløper <strong>${formatDato(tungPalopDato)}</strong>.
+    </div>`;
+  }
+
+  document.getElementById('avdrag-summary').innerHTML = varsler + `
+    <div class="rente-result" style="margin-bottom:16px;">
+      <div class="rente-box" style="border-left-color:var(--ink)">
+        <div class="rente-box-label">Totalbeløp per i dag</div>
+        <div class="rente-box-value">${kr(totalRenterIdag + hovedstol + totalSalar + rettslige)}</div>
+      </div>
+      <div class="rente-box" style="border-left-color:var(--ink)">
+        <div class="rente-box-label">Totalbeløp ved første forfall</div>
+        <div class="rente-box-value">${kr(totalVedForfall)}</div>
+      </div>
+      <div class="rente-box" style="border-left-color:var(--high)" id="summary-totalbetalt">
+        <div class="rente-box-label">Totalt betalt i avtalen</div>
+        <div class="rente-box-value">beregner…</div>
+      </div>
+      <div class="rente-box" style="border-left-color:var(--high)">
+        <div class="rente-box-label">Daglig rente</div>
+        <div class="rente-box-value">${kr((hovedstol + totalSalar) * DAGLIG_RENTE)}</div>
+      </div>
+    </div>
+    <div class="breakdown">
+      ${hovedstol ? `<div class="breakdown-row"><span class="breakdown-label">Hovedstol</span><span class="breakdown-amount">${kr(hovedstol)}</span></div>` : ''}
+      ${!tungPaloppt && tungSalar === 0 && lettSalar ? `<div class="breakdown-row"><span class="breakdown-label">Inkassosalær (lett)</span><span class="breakdown-amount">${kr(lettSalar)}</span></div>` : ''}
+      ${tungPaloppt ? `<div class="breakdown-row"><span class="breakdown-label">Inkassosalær (tungt, erstatter lett)</span><span class="breakdown-amount">${kr(tungSalar)}</span></div>` : ''}
+      ${!tungPaloppt && tungSalar > 0 ? `<div class="breakdown-row"><span class="breakdown-label">Inkassosalær – vil bli tungt ${formatDato(tungPalopDato)}</span><span class="breakdown-amount">${kr(tungSalar)}</span></div>` : ''}
+      ${avdragsgebyr ? `<div class="breakdown-row"><span class="breakdown-label">Avdragssalær</span><span class="breakdown-amount">${kr(avdragsgebyr)}</span></div>` : ''}
+      ${rettslige ? `<div class="breakdown-row"><span class="breakdown-label">Rettslige kostnader</span><span class="breakdown-amount">${kr(rettslige)}</span></div>` : ''}
+      ${totalRenterIdag > 0 ? `<div class="breakdown-row"><span class="breakdown-label">Påløpte renter per i dag</span><span class="breakdown-amount">${kr(totalRenterIdag)}</span></div>` : ''}
+      ${rentFremTilForfall > 0 ? `<div class="breakdown-row"><span class="breakdown-label">Renter frem til første forfall (${dagerTilForfall} dager)</span><span class="breakdown-amount">${kr(rentFremTilForfall)}</span></div>` : ''}
+      <div class="breakdown-row total"><span class="breakdown-label">Totalbeløp ved første forfall</span><span class="breakdown-amount">${kr(totalVedForfall)}</span></div>
+    </div>
+  `;
+
+  // ── Bygg avdragsplan med daglige renter og dekningsrekkefølge ──
+  let saldoHovedstol = hovedstol;
+  let saldoSalar     = totalSalar;    // salær inkl. avdragssalær – renter løper her
+  let saldoRettslige = rettslige;     // rettslige kostnader – ingen renter
+  let saldoRenter    = totalRenterIdag + rentFremTilForfall;
+
+  let forrigeDato = new Date(startDato);
+
+  let html = `<thead><tr>
+    <th>#</th>
+    <th>Forfall</th>
+    <th>Innbetaling</th>
+    <th>→ Salær/kost.</th>
+    <th>→ Hovedstol</th>
+    <th>→ Renter</th>
+    <th style="border-left:2px solid var(--border)">Rest salær</th>
+    <th>Rest hovedstol</th>
+    <th>Rest renter</th>
+    <th>Rest total</th>
+  </tr></thead><tbody>`;
+
+  // ── Beregn riktig fast terminbeløp via iterasjon ──
+  // Enkel divisjon gir feil fordi renter løper mellom terminene.
+  // Vi simulerer avdragsplanen med et prøvebeløp og justerer til saldo = 0 etter siste termin.
+
+  function simuleringTotalRest(prøveBelop, antMnd) {
+    let sh = hovedstol;
+    let ss = totalSalar;
+    let sr = rettslige;
+    let sRent = totalRenterIdag + rentFremTilForfall;
+    let forrige = new Date(startDato);
+    for (let i = 1; i <= antMnd; i++) {
+      const forf = leggTilMnd(startDato, i - 1);
+      const dager = dagMellom(forrige, forf);
+      const sats  = dagligRenteForDato(forrige);
+      sRent += (sh + ss - sr) * sats * dager;
+      const gjenstaar = ss + sr + sh + sRent;
+      const bet = Math.min(prøveBelop, gjenstaar);
+      let r = bet;
+      // Samme dekningsrekkefølge
+      const rek = dekning === 'SHR' ? ['S','H','R'] : dekning === 'HSR' ? ['H','S','R'] :
+                  dekning === 'RHS' ? ['R','H','S'] : ['R','S','H'];
+      for (const p of rek) {
+        if (r <= 0) break;
+        if (p === 'S') { const t = Math.min(r, ss); ss -= t; r -= t; }
+        if (p === 'H') { const t = Math.min(r, sh); sh -= t; r -= t; }
+        if (p === 'R') { const t = Math.min(r, sRent); sRent -= t; r -= t; }
+      }
+      // Rettslige kostnader dekkes alltid til slutt hvis ikke allerede dekket
+      const tRett = Math.min(r, sr); sr -= tRett; r -= tRett;
+      forrige = new Date(forf);
+    }
+    return Math.max(0, ss + sr + sh + sRent);
+  }
+
+  if (mnd && !fastMndBelop) {
+    // Finn terminbeløp med binærsøk slik at rest ≈ 0 etter siste termin
+    let lo = totalVedForfall / mnd;
+    let hi = totalVedForfall / mnd * 1.5;
+    for (let iter = 0; iter < 60; iter++) {
+      const mid = (lo + hi) / 2;
+      if (simuleringTotalRest(mid, mnd) > 0.01) lo = mid;
+      else hi = mid;
+    }
+    fastMndBelop = Math.ceil(hi * 100) / 100; // rund opp til nærmeste øre
+    document.getElementById('a-mnd-belop').value = Math.round(fastMndBelop);
+  } else if (fastMndBelop && !mnd) {
+    mnd = Math.ceil(totalVedForfall / fastMndBelop);
+    document.getElementById('a-mnd').value = mnd;
+  }
+
+  document.getElementById('avdragssalar-varsel').style.display = mnd >= 5 ? 'block' : 'none';
+
+  let totalBetalt = 0;
+
+  for (let i = 1; i <= mnd; i++) {
+    const forfallDato = leggTilMnd(startDato, i - 1);
+
+    // Renter løper daglig på gjenstående hovedstol + salær (IKKE på renter eller rettslige kostnader)
+    const dagerSiden = dagMellom(forrigeDato, forfallDato);
+    const dagligSats = dagligRenteForDato(forrigeDato);
+    const nyeRenter  = (saldoHovedstol + saldoSalar - saldoRettslige) * dagligSats * dagerSiden;
+    saldoRenter     += nyeRenter;
+
+    const gjenstaarFoerBetaling = saldoSalar + saldoRettslige + saldoHovedstol + saldoRenter;
+
+    // Alle terminer betaler fastMndBelop – siste termin betaler kun gjenstående
+    // (som nå skal være tilnærmet lik fastMndBelop pga. binærsøket over)
+    const betaling = i === mnd
+      ? Math.round(gjenstaarFoerBetaling * 100) / 100
+      : fastMndBelop;
+
+    totalBetalt += betaling;
+
+    // Fordel betaling – rettslige kostnader dekkes ALLTID aller først
+    let rest = betaling;
+    let tilSalar = 0, tilHovedstol = 0, tilRenter = 0;
+
+    // 1. Rettslige kostnader først
+    const tRettslige = Math.min(rest, saldoRettslige);
+    tilSalar      += tRettslige;
+    saldoRettslige -= tRettslige;
+    rest          -= tRettslige;
+
+    // 2. Deretter valgt dekningsrekkefølge for resten
+    const rekkefølge = dekning === 'SHR' ? ['S','H','R'] :
+                       dekning === 'HSR' ? ['H','S','R'] :
+                       dekning === 'RHS' ? ['R','H','S'] :
+                                           ['R','S','H'];
+
+    for (const post of rekkefølge) {
+      if (rest <= 0) break;
+      if (post === 'S') { const t = Math.min(rest, saldoSalar);     tilSalar     += t; saldoSalar     -= t; rest -= t; }
+      if (post === 'H') { const t = Math.min(rest, saldoHovedstol); tilHovedstol += t; saldoHovedstol -= t; rest -= t; }
+      if (post === 'R') { const t = Math.min(rest, saldoRenter);    tilRenter    += t; saldoRenter    -= t; rest -= t; }
+    }
+
+    const restTotal     = Math.max(0, saldoSalar + saldoRettslige + saldoHovedstol + saldoRenter);
+    const restSalar     = Math.max(0, saldoSalar + saldoRettslige);
+    const restHovedstol = Math.max(0, saldoHovedstol);
+    const restRenter    = Math.max(0, saldoRenter);
+
+    // Merknad
+    let merknad = '';
+    if (tungPalopDato && !tungPaloppt) {
+      const forrigeF = i === 1 ? new Date(0) : leggTilMnd(startDato, i - 2);
+      if (tungPalopDato > forrigeF && tungPalopDato <= forfallDato) {
+        merknad = `⚠ Tungt salær påløper ${formatDato(tungPalopDato)}`;
+      }
+    }
+    if (i === mnd && betaling > fastMndBelop + 0.01) {
+      merknad = (merknad ? merknad + ' · ' : '') + `Inkl. løpende renter`;
+    }
+    if (i === mnd && betaling < fastMndBelop - 0.01) {
+      merknad = (merknad ? merknad + ' · ' : '') + `Resttermin`;
+    }
+
+    html += `<tr>
+      <td class="label">${i}</td>
+      <td>${formatDato(forfallDato)}</td>
+      <td><strong>${kr(betaling)}</strong></td>
+      <td style="color:var(--text-muted)">${tilSalar > 0 ? kr(tilSalar) : '–'}</td>
+      <td style="color:var(--text-muted)">${tilHovedstol > 0 ? kr(tilHovedstol) : '–'}</td>
+      <td style="color:var(--high)">${tilRenter > 0 ? kr(tilRenter) : '–'}</td>
+      <td style="border-left:2px solid var(--border);color:var(--text-muted)">${restSalar > 0 ? kr(restSalar) : '–'}</td>
+      <td style="color:var(--text-muted)">${restHovedstol > 0 ? kr(restHovedstol) : '–'}</td>
+      <td style="color:var(--high)">${restRenter > 0 ? kr(restRenter) : '–'}</td>
+      <td><strong>${kr(restTotal)}</strong>${merknad ? `<br><span style="font-size:11px;color:#b45309;">${merknad}</span>` : ''}</td>
+    </tr>`;
+
+    forrigeDato = new Date(forfallDato);
+  }
+
+  html += '</tbody>';
+  document.getElementById('avdrag-tabell').innerHTML = html;
+  document.getElementById('avdrag-tabell-panel').style.display = 'block';
+
+  // Oppdater "Totalt betalt i avtalen" nå som vi vet totalBetalt
+  const totalBetaltEl = document.getElementById('summary-totalbetalt');
+  if (totalBetaltEl) {
+    totalBetaltEl.innerHTML = `
+      <div class="rente-box-label">Totalt betalt i avtalen</div>
+      <div class="rente-box-value">${kr(totalBetalt)}</div>
+    `;
+  }
+}
+
+function kopierAvdrag() {
+  const rows = document.querySelectorAll('#avdrag-tabell tbody tr');
+  let tekst = 'AVDRAGSPLAN\n' + '─'.repeat(60) + '\n';
+  tekst += `${'#'.padEnd(4)}${'Forfall'.padEnd(14)}${'Innbet.'.padEnd(12)}${'Salær'.padEnd(12)}${'Hovedstol'.padEnd(12)}${'Renter'.padEnd(12)}Rest\n`;
+  tekst += '─'.repeat(60) + '\n';
+  rows.forEach(r => {
+    const c = r.querySelectorAll('td');
+    tekst += `${c[0].textContent.padEnd(4)}${c[1].textContent.padEnd(14)}${c[2].textContent.replace(/\s+/g,' ').trim().padEnd(12)}${c[3].textContent.padEnd(12)}${c[4].textContent.padEnd(12)}${c[5].textContent.padEnd(12)}${c[6].textContent.split('\n')[0].trim()}\n`;
+  });
+  kopierTekst(tekst, 'Avdragsplan kopiert!');
+}
+
+function nullstillAvdrag() {
+  ['a-hovedstol','a-salar','a-rettslige','a-mnd','a-mnd-belop','a-dato','a-forfall','a-bo-dato','a-tung-salar','a-tung-salar-fremtidig'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('a-avdragssalar-fritak').checked     = false;
+  document.getElementById('avdragssalar-varsel').style.display  = 'none';
+  document.getElementById('tung-salar-wrap').style.display      = 'none';
+  document.getElementById('tung-salar-fremtidig').style.display = 'none';
+  document.getElementById('avdrag-summary').innerHTML =
+    '<span style="color:var(--text-muted)">Fyll inn bestanddeler og datoer for å beregne totalbeløp.</span>';
+  document.getElementById('avdrag-tabell-panel').style.display = 'none';
+}
+
+/* ════════════════════════════════
+   RENTE
+════════════════════════════════ */
+
+function beregnRente() {
+  const hoved  = parseFloat(document.getElementById('rn-hoved').value) || 0;
+  const fraStr = document.getElementById('rn-fra').value.trim();
+  const tilStr = document.getElementById('rn-til').value.trim();
+
+  if (!hoved || !fraStr || !tilStr) {
+    document.getElementById('rente-resultat').innerHTML =
+      '<span style="color:var(--text-muted)">Fyll inn hovedstol og datoer.</span>';
+    return;
+  }
+
+  const fra = parseNO(fraStr);
+  const til = parseNO(tilStr);
+  if (!fra || !til || til <= fra) {
+    document.getElementById('rente-resultat').innerHTML =
+      '<span style="color:var(--text-muted)">Ugyldig datoperiode.</span>';
+    return;
+  }
+
+  const { totalRente, perioder } = beregnRenterMedSatser(hoved, fra, til);
+  const totalDager = dagMellom(fra, til);
+
+  let perioderHtml = perioder.map(p => `
+    <tr>
+      <td>${formatDato(p.fra)}</td>
+      <td>${formatDato(p.til)}</td>
+      <td style="text-align:right">${p.dager}</td>
+      <td style="text-align:right">${p.sats.toFixed(2)}%</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600">${kr(p.rente)}</td>
+    </tr>`).join('');
+
+  document.getElementById('rente-resultat').innerHTML = `
+    <div class="rente-result" style="margin-bottom:20px;">
+      <div class="rente-box" style="border-left-color:var(--high)">
+        <div class="rente-box-label">Totale renter</div>
+        <div class="rente-box-value">${kr(totalRente)}</div>
+      </div>
+      <div class="rente-box" style="border-left-color:var(--ink)">
+        <div class="rente-box-label">Hovedstol + renter</div>
+        <div class="rente-box-value">${kr(hoved + totalRente)}</div>
+      </div>
+      <div class="rente-box" style="border-left-color:var(--text-muted)">
+        <div class="rente-box-label">Antall dager</div>
+        <div class="rente-box-value" style="font-size:20px">${totalDager}</div>
+      </div>
+    </div>
+
+    <table class="avdrag-table">
+      <thead><tr>
+        <th>Fra dato</th>
+        <th>Til dato</th>
+        <th style="text-align:right">Dager</th>
+        <th style="text-align:right">Sats</th>
+        <th style="text-align:right">Rentebeløp</th>
+      </tr></thead>
+      <tbody>${perioderHtml}</tbody>
+      <tfoot><tr style="font-weight:700;background:var(--bg)">
+        <td colspan="4" style="padding:10px 12px;">Totalt</td>
+        <td style="text-align:right;padding:10px 12px;font-family:'DM Mono',monospace">${kr(totalRente)}</td>
+      </tr></tfoot>
+    </table>
+  `;
+}
+
+function settDagensDato() {
+  const iDag = new Date();
+  const dd   = String(iDag.getDate()).padStart(2, '0');
+  const mm   = String(iDag.getMonth() + 1).padStart(2, '0');
+  const yyyy = iDag.getFullYear();
+  document.getElementById('rn-til').value = `${dd}.${mm}.${yyyy}`;
+  beregnRente();
+}
+
+function beregnRenteFraDato() {
+  beregnRente();
+}
+
+</script>
+</body>
+</html>
