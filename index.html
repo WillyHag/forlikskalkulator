@@ -161,6 +161,20 @@
 
   .field input::placeholder { color: #bbb; }
 
+  /* Ugyldig dato */
+  .field input.dato-ugyldig {
+    border-color: var(--high) !important;
+    box-shadow: 0 0 0 3px rgba(192,57,43,0.12) !important;
+    background: #fff5f5;
+  }
+  .dato-feilmelding {
+    font-size: 11px;
+    color: var(--high);
+    margin-top: 4px;
+    display: none;
+  }
+  .dato-ugyldig + .dato-feilmelding { display: block; }
+
   .field-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -659,12 +673,18 @@
           </div>
           <div class="field">
             <label>Oppr. forfallsdato</label>
-            <input type="text" id="a-forfall" placeholder="dd.mm.åååå">
+            <input type="text" id="a-forfall" placeholder="dd.mm.åååå" oninput="oppdaterFoerBO()">
+            <div class="dato-feilmelding" id="a-forfall-feil">Ugyldig dato</div>
           </div>
         </div>
 
+        <!-- IV ikke forfalt: ingen salær -->
+        <div id="iv-ikke-forfalt-varsel" style="display:none;background:#eef4ff;border-left:3px solid #3a7bd5;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#1e3a6e;">
+          ℹ IV ikke forfalt ennå – kun purregebyr i inkassovarsel. Inkassosalær påløper etter forfallsdato.
+        </div>
+
         <!-- Salær auto-beregnet -->
-        <div style="background:var(--bg);border-radius:8px;padding:14px;margin-bottom:16px;border:1px solid var(--border);">
+        <div id="inkasso-salar-wrap" style="background:var(--bg);border-radius:8px;padding:14px;margin-bottom:16px;border:1px solid var(--border);">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:10px;">Inkassosalær (beregnet automatisk)</div>
           <div class="field-row" style="margin-bottom:0;">
             <div class="field" style="margin-bottom:0;">
@@ -674,8 +694,32 @@
             </div>
             <div class="field" style="margin-bottom:0;">
               <label>Dato for BO</label>
-              <input type="text" id="a-bo-dato" placeholder="dd.mm.åååå">
+              <input type="text" id="a-bo-dato" placeholder="dd.mm.åååå" oninput="oppdaterFoerBO()">
+              <div class="dato-feilmelding" id="a-bo-dato-feil">Ugyldig dato</div>
+              <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;">
+                <input type="checkbox" id="a-bo-ikke-sendt" onchange="oppdaterFoerBO()"
+                       style="width:14px;height:14px;cursor:pointer;accent-color:var(--ink);">
+                BO ikke sendt
+              </label>
             </div>
+          </div>
+        </div>
+
+        <!-- Avdragsavtale før BO -->
+        <div id="foer-bo-panel" style="display:none;background:#eef4ff;border-left:3px solid #3a7bd5;border-radius:8px;padding:14px;margin-bottom:16px;">
+          <div style="font-size:12px;font-weight:700;color:#1e3a6e;margin-bottom:10px;">
+            📋 Avdragsavtale før BO
+          </div>
+          <div style="font-size:13px;color:#1e3a6e;margin-bottom:12px;line-height:1.5;">
+            IV har forfalt, men BO er ikke sendt. Regler:<br>
+            • Maks <strong>4 avdrag</strong><br>
+            • Første avdrag ≥ <strong>25% av totalkravet</strong><br>
+            • Lett salær påføres på dato satt nedenfor (ikke tungt salær med mindre mislighold)
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Dato lett salær påføres</label>
+            <input type="text" id="a-salar-dato" placeholder="dd.mm.åååå" oninput="beregnAvdrag()">
+            <div class="dato-feilmelding" id="a-salar-dato-feil">Ugyldig dato</div>
           </div>
         </div>
 
@@ -733,6 +777,14 @@
         <div class="field">
           <label>Første forfall (valgfritt)</label>
           <input type="text" id="a-dato" placeholder="dd.mm.åååå">
+            <div class="dato-feilmelding" id="a-dato-feil">Ugyldig dato</div>
+        </div>
+
+        <!-- Advarsel: maks 4 avdrag / 25% første avdrag ved avdragsavtale før BO -->
+        <div id="foer-bo-varsel" style="display:none;margin-bottom:16px;">
+          <div style="background:#fde8e8;border-left:3px solid var(--high);border-radius:6px;padding:10px 14px;font-size:13px;color:#991b1b;">
+            <span id="foer-bo-varsel-tekst"></span>
+          </div>
         </div>
 
         <!-- Avdragssalær varsel – vises ved ≥5 avdrag -->
@@ -800,6 +852,7 @@
           <div class="field">
             <label>Fra dato</label>
             <input type="text" id="rn-fra" placeholder="dd.mm.åååå">
+            <div class="dato-feilmelding" id="rn-fra-feil">Ugyldig dato</div>
           </div>
           <div class="field">
             <label style="display:flex;justify-content:space-between;align-items:center;">
@@ -807,6 +860,7 @@
               <span onclick="settDagensDato()" style="font-size:11px;font-weight:700;color:var(--ink);background:var(--accent);padding:2px 8px;border-radius:4px;cursor:pointer;letter-spacing:0.05em;">i dag</span>
             </label>
             <input type="text" id="rn-til" placeholder="dd.mm.åååå">
+            <div class="dato-feilmelding" id="rn-til-feil">Ugyldig dato</div>
           </div>
         </div>
         <div style="font-size:12px; color:var(--text-muted); margin-top:-8px;">
@@ -919,21 +973,60 @@ function formatDato(d) {
 }
 
 /* ════════════════════════════════
-   DATO AUTO-FORMAT
+   DATO AUTO-FORMAT OG VALIDERING
 ════════════════════════════════ */
+
+function erGyldigDato(d) {
+  return d instanceof Date && !isNaN(d.getTime());
+}
+
+function settDatoFeil(input, melding) {
+  input.classList.add('dato-ugyldig');
+  const feil = document.getElementById(input.id + '-feil');
+  if (feil) { feil.textContent = melding; feil.style.display = 'block'; }
+}
+
+function fjernDatoFeil(input) {
+  input.classList.remove('dato-ugyldig');
+  const feil = document.getElementById(input.id + '-feil');
+  if (feil) feil.style.display = 'none';
+}
+
+// Datoer som ikke bør ligge frem i tid
+const DATO_IKKE_FREMTID = ['a-forfall', 'a-bo-dato', 'rn-fra'];
 
 function autoFormatDato(input) {
   let val = input.value.replace(/\D/g, '');
+  let formatted = null;
 
   if (val.length === 6) {
-    val = val.slice(0,2) + '.' + val.slice(2,4) + '.20' + val.slice(4,6);
+    formatted = val.slice(0,2) + '.' + val.slice(2,4) + '.20' + val.slice(4,6);
   } else if (val.length === 8) {
-    val = val.slice(0,2) + '.' + val.slice(2,4) + '.' + val.slice(4,8);
+    formatted = val.slice(0,2) + '.' + val.slice(2,4) + '.' + val.slice(4,8);
+  } else if (input.value.length === 10) {
+    formatted = input.value; // allerede formatert
   } else {
-    return; // Ikke fullstendig – ikke gjør noe
+    if (input.value.trim()) settDatoFeil(input, 'Fyll inn dato: dd.mm.åååå');
+    return;
   }
 
-  input.value = val;
+  const dato = parseNO(formatted);
+  if (!erGyldigDato(dato)) {
+    input.value = formatted;
+    settDatoFeil(input, 'Ugyldig dato');
+    return;
+  }
+
+  // Sjekk om datoen er fremtidig der det ikke gir mening
+  const iDag = new Date(); iDag.setHours(0,0,0,0);
+  if (DATO_IKKE_FREMTID.includes(input.id) && dato > iDag) {
+    input.value = formatted;
+    settDatoFeil(input, 'Datoen kan ikke ligge frem i tid');
+    return;
+  }
+
+  fjernDatoFeil(input);
+  input.value = formatted;
   triggerBeregning(input);
 }
 
@@ -948,23 +1041,47 @@ function triggerBeregning(input) {
 
 // Koble auto-format til alle datofelt ved oppstart
 document.addEventListener('DOMContentLoaded', () => {
-  // Dato-felt: formater på blur
+  // Dato-felt: formater og valider på blur
   document.querySelectorAll('input[placeholder="dd.mm.åååå"]').forEach(input => {
     input.addEventListener('blur', () => autoFormatDato(input));
     input.addEventListener('keydown', e => {
       if (e.key === 'Enter') autoFormatDato(input);
     });
+    // Fjern feilmarkering når bruker begynner å skrive
+    input.addEventListener('input', () => fjernDatoFeil(input));
   });
 
-  // Beløps-felt: formater til "10 000,00" på blur
+  // Beløps-felt: live tusenskilletegn mens man skriver
   const belopIds = ['f-hovedstol','f-gebyr','f-renter','f-rettslige','f-direkte',
                     'a-hovedstol','a-salar','a-tung-salar','a-rettslige','a-mnd-belop','rn-hoved'];
   belopIds.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
+
+    el.addEventListener('input', () => {
+      const cursorPos = el.selectionStart;
+      const oldLen = el.value.length;
+
+      // Bevar alt etter komma/punktum uendret – formater kun heltallsdelen
+      const raw = el.value;
+      const kommaIdx = raw.search(/[,\.]/);
+      const heltallDel = kommaIdx >= 0 ? raw.slice(0, kommaIdx) : raw;
+      const desimalDel = kommaIdx >= 0 ? raw.slice(kommaIdx) : '';
+
+      // Kun sifrene i heltallsdelen
+      const siffer = heltallDel.replace(/[^\d]/g, '');
+      const formatted = siffer.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+
+      el.value = formatted + desimalDel;
+
+      // Bevar cursor-posisjon (juster for endring i lengde)
+      const newLen = el.value.length;
+      const newPos = Math.max(0, cursorPos + (newLen - oldLen));
+      try { el.setSelectionRange(newPos, newPos); } catch(e) {}
+    });
+
     el.addEventListener('blur', () => formatBelopFelt(el));
     el.addEventListener('focus', () => {
-      // Ved fokus: vis rå tallverdi uten formatering så det er lett å redigere
       const n = parseKr(el.value);
       if (n) el.value = String(n).replace('.', ',');
     });
@@ -1424,6 +1541,31 @@ function hentSalar(hovedstol) {
   return { lett: siste[key][0], tungt: siste[key][1] };
 }
 
+function oppdaterFoerBO() {
+  const forfDato  = parseNO(document.getElementById('a-forfall').value.trim());
+  const boDato    = parseNO(document.getElementById('a-bo-dato').value.trim());
+  const iDag      = new Date(); iDag.setHours(0,0,0,0);
+  const boIkkeSendt = document.getElementById('a-bo-ikke-sendt').checked;
+
+  // Vis "før BO"-panel kun hvis haken er satt
+  const foerBO    = boIkkeSendt;
+  const panel     = document.getElementById('foer-bo-panel');
+  if (panel) panel.style.display = foerBO ? 'block' : 'none';
+
+  // Lås BO-dato-feltet hvis haken er huket
+  const boDatoEl = document.getElementById('a-bo-dato');
+  if (boIkkeSendt) {
+    boDatoEl.value = '';
+    boDatoEl.disabled = true;
+    boDatoEl.style.opacity = '0.4';
+  } else {
+    boDatoEl.disabled = false;
+    boDatoEl.style.opacity = '1';
+  }
+
+  beregnAvdrag();
+}
+
 function oppdaterSalar() {
   const hovedstol = parseKr(document.getElementById('a-hovedstol').value) || 0;
   if (hovedstol > 0) {
@@ -1514,7 +1656,21 @@ function beregnAvdrag() {
     tungSalar = parseKr(document.getElementById('a-tung-salar').value) || 0;
   }
 
-  if (!hovedstol || (!mndInput && !belopInput)) {
+  // ── IV ikke forfalt: ingen salær, kun purregebyr ──
+  const ivIkkeForfalt = forfDato && forfDato > iDag;
+  const salarWrap = document.getElementById('inkasso-salar-wrap');
+  if (salarWrap) salarWrap.style.display = ivIkkeForfalt ? 'none' : 'block';
+
+  // Sett varsel dersom IV ikke har forfalt
+  const ivVarselEl = document.getElementById('iv-ikke-forfalt-varsel');
+  if (ivVarselEl) ivVarselEl.style.display = ivIkkeForfalt ? 'block' : 'none';
+
+  // Effektivt salær = 0 hvis IV ikke har forfalt ennå
+  const effektivLettSalar = ivIkkeForfalt ? 0 : lettSalar;
+  const boIkkeSendtTidlig = document.getElementById('a-bo-ikke-sendt')?.checked;
+  const foerBOTidlig = boIkkeSendtTidlig;
+
+  if (!hovedstol || (!mndInput && !belopInput && !foerBOTidlig)) {
     document.getElementById('avdrag-summary').innerHTML =
       '<span style="color:var(--text-muted)">Fyll inn hovedstol og antall måneder eller månedlig beløp.</span>';
     document.getElementById('avdrag-tabell-panel').style.display = 'none';
@@ -1532,11 +1688,11 @@ function beregnAvdrag() {
 
   // ── Renter på inkassosalær (lett) fra BO+14 dager til i dag ──
   let rentSalarIdag = 0;
-  if (boDato && lettSalar > 0) {
+  if (boDato && effektivLettSalar > 0) {
     const salarForfalt = new Date(boDato);
     salarForfalt.setDate(salarForfalt.getDate() + 14);
     if (salarForfalt < iDag) {
-      rentSalarIdag = beregnRenterMedSatser(lettSalar, salarForfalt, iDag).totalRente;
+      rentSalarIdag = beregnRenterMedSatser(effektivLettSalar, salarForfalt, iDag).totalRente;
     }
   }
 
@@ -1563,23 +1719,51 @@ function beregnAvdrag() {
     // Begge er beregnet – bruk antall måneder
     mnd          = mndInput;
     fastMndBelop = null;
-  } else {
+  } else if (!foerBOTidlig) {
     return;
   }
 
-  const visAvdragsVarsel = mnd ? mnd >= 5 : false;
   const fritak = document.getElementById('a-avdragssalar-fritak').checked;
+
+  // ── Avdragsavtale før BO: begrens til maks 4 avdrag, krev 25% første avdrag ──
+  const ivForfalt = forfDato && forfDato < iDag;
+  const boIkkeSendt = boIkkeSendtTidlig;
+  const foerBO    = boIkkeSendt;
+  const foerBOVarsel = document.getElementById('foer-bo-varsel');
+  const foerBOTekst  = document.getElementById('foer-bo-varsel-tekst');
+
+  if (foerBO) {
+    if (!mnd && !fastMndBelop) {
+      // Ingen avdrag satt ennå – sett automatisk 4
+      mnd = 4;
+      mndEl.value = 4;
+      mndEl.dataset.beregnet = '1';
+      fastMndBelop = null;
+    } else if (mnd && mnd > 4) {
+      // Begrens til maks 4
+      mnd = 4;
+      mndEl.value = 4;
+      mndEl.dataset.beregnet = '1';
+      fastMndBelop = null;
+    }
+    if (foerBOVarsel) foerBOVarsel.style.display = 'block';
+  } else {
+    if (foerBOVarsel) foerBOVarsel.style.display = 'none';
+  }
+
+  // Avdragssalær kun ved 5+ avdrag (etter evt. begrensning til 4)
+  const visAvdragsVarsel = mnd ? mnd >= 5 : false;
   document.getElementById('avdragssalar-varsel').style.display = visAvdragsVarsel ? 'block' : 'none';
   const avdragsgebyr = (mnd && mnd >= 5 && !fritak) ? AVDRAGSGEBYR : 0;
 
   // ── Totalt salær: tungt erstatter lett (er ikke et tillegg) ──
-  const effektivtSalar = tungPaloppt ? tungSalar : (boDato && tungSalar > 0 ? tungSalar : lettSalar);
+  const effektivtSalar = tungPaloppt ? tungSalar : (boDato && tungSalar > 0 ? tungSalar : effektivLettSalar);
   const totalSalar = effektivtSalar + avdragsgebyr;
 
   // Splitt: hva som er påløpt nå vs. hva som legges til når tungt salær påløper
   // Hvis tungt ikke har påløpt: start med lett salær, legg til differansen på tungPalopDato
-  const salarNaa       = tungPaloppt ? tungSalar : lettSalar; // påløpt salær per i dag
-  const salarDifferanse = (!tungPaloppt && tungSalar > 0) ? (tungSalar - lettSalar) : 0; // økning når tungt påløper
+  const salarNaa       = tungPaloppt ? tungSalar : effektivLettSalar; // påløpt salær per i dag
+  const salarDifferanse = (!tungPaloppt && tungSalar > 0) ? (tungSalar - effektivLettSalar) : 0; // økning når tungt påløper
 
   // ── Total renter per i dag ──
   const totalRenterIdag = rentHovedstolIdag + rentSalarIdag + rentTungIdag;
@@ -1601,6 +1785,18 @@ function beregnAvdrag() {
 
   // ── Sammendrag ──
   let varsler = '';
+
+  // Advarsel for avdragsavtale før BO
+  if (foerBO) {
+    const minFoerste = totalVedForfall * 0.25;
+    const foersteBelop = mnd ? (fastMndBelop || totalVedForfall / mnd) : 0;
+    const salarDatoStr = document.getElementById('a-salar-dato')?.value.trim();
+    const salarDato    = parseNO(salarDatoStr);
+    let foerBOMsg = `⚠ <strong>Avdragsavtale før BO:</strong> Maks 4 avdrag. Første avdrag må være minst <strong>${kr(minFoerste)}</strong> (25% av totalkravet ${kr(totalVedForfall)}).`;
+    if (salarDato) foerBOMsg += ` Lett salær påføres <strong>${formatDato(salarDato)}</strong>.`;
+    if (foerBOTekst) foerBOTekst.innerHTML = foerBOMsg;
+  }
+
   if (mnd >= 5 && !fritak) {
     varsler += `<div style="background:#fff8e1;border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e;">
       ⚠ <strong>Avdragssalær kr 1 125</strong> er lagt til (${mnd || '?'} avdrag).
@@ -1633,7 +1829,7 @@ function beregnAvdrag() {
     </div>
     <div class="breakdown">
       ${hovedstol ? `<div class="breakdown-row"><span class="breakdown-label">Hovedstol</span><span class="breakdown-amount">${kr(hovedstol)}</span></div>` : ''}
-      ${!tungPaloppt && tungSalar === 0 && lettSalar ? `<div class="breakdown-row"><span class="breakdown-label">Inkassosalær (lett)</span><span class="breakdown-amount">${kr(lettSalar)}</span></div>` : ''}
+      ${!tungPaloppt && tungSalar === 0 && effektivLettSalar ? `<div class="breakdown-row"><span class="breakdown-label">Inkassosalær (lett)</span><span class="breakdown-amount">${kr(effektivLettSalar)}</span></div>` : ''}
       ${tungPaloppt ? `<div class="breakdown-row"><span class="breakdown-label">Inkassosalær (tungt, erstatter lett)</span><span class="breakdown-amount">${kr(tungSalar)}</span></div>` : ''}
       ${!tungPaloppt && tungSalar > 0 ? `<div class="breakdown-row"><span class="breakdown-label">Inkassosalær – vil bli tungt ${formatDato(tungPalopDato)}</span><span class="breakdown-amount">${kr(tungSalar)}</span></div>` : ''}
       ${avdragsgebyr ? `<div class="breakdown-row"><span class="breakdown-label">Avdragssalær</span><span class="breakdown-amount">${kr(avdragsgebyr)}</span></div>` : ''}
@@ -2056,14 +2252,20 @@ function kopierAvdrag() {
 function nullstillAvdrag() {
   window._avdragsTerminer = null;
   window._avdragsMeta = null;
-  ['a-hovedstol','a-salar','a-rettslige','a-mnd','a-mnd-belop','a-dato','a-forfall','a-bo-dato','a-tung-salar','a-tung-salar-fremtidig'].forEach(id => {
+  ['a-hovedstol','a-salar','a-rettslige','a-mnd','a-mnd-belop','a-dato','a-forfall','a-bo-dato','a-tung-salar','a-tung-salar-fremtidig','a-salar-dato'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  document.getElementById('a-avdragssalar-fritak').checked     = false;
+  document.getElementById('a-avdragssalar-fritak').checked  = false;
+  document.getElementById('a-bo-ikke-sendt').checked        = false;
+  const boDatoEl = document.getElementById('a-bo-dato');
+  boDatoEl.disabled = false; boDatoEl.style.opacity = '1';
   document.getElementById('avdragssalar-varsel').style.display  = 'none';
   document.getElementById('tung-salar-wrap').style.display      = 'none';
   document.getElementById('tung-salar-fremtidig').style.display = 'none';
+  document.getElementById('iv-ikke-forfalt-varsel').style.display = 'none';
+  document.getElementById('inkasso-salar-wrap').style.display      = 'block';
+  document.getElementById('foer-bo-varsel').style.display       = 'none';
   document.getElementById('avdrag-summary').innerHTML =
     '<span style="color:var(--text-muted)">Fyll inn bestanddeler og datoer for å beregne totalbeløp.</span>';
   document.getElementById('avdrag-tabell-panel').style.display = 'none';
