@@ -1522,7 +1522,7 @@ function fjernDatoFeil(input) {
 }
 
 // Datoer som ikke bør ligge frem i tid
-const DATO_IKKE_FREMTID = ['a-forfall', 'a-bo-dato', 'a-dato', 'rn-fra'];
+const DATO_IKKE_FREMTID = ['a-forfall', 'a-bo-dato', 'rn-fra'];
 
 function autoFormatDato(input) {
   let val = input.value.replace(/\D/g, '');
@@ -1554,7 +1554,15 @@ function autoFormatDato(input) {
     return;
   }
 
-  // Spesialvalidering for IV-forfallsdato
+  // Spesialvalidering for første forfall – kan ikke ligge i fortiden
+  if (input.id === 'a-dato') {
+    const iDag2 = new Date(); iDag2.setHours(0,0,0,0);
+    if (dato < iDag2) {
+      input.value = formatted;
+      settDatoFeil(input, 'Første forfall kan ikke ligge i fortiden');
+      return;
+    }
+  }
   if (input.id === 'a-iv-forfall') {
     const forfDato = parseNO(document.getElementById('a-forfall').value.trim());
     if (forfDato) {
