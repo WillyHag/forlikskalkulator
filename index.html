@@ -6,6 +6,7 @@
 <title>Inkasso Toolkit – Forlik • Avdrag • Renter</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root {
     --ink: #1e1e2e;
@@ -564,7 +565,15 @@
   .dp-day.weekend { color: var(--high); }
   .dp-day.helligdag { color: var(--high); font-weight: 700; }
   .dp-day.selected { background: var(--ink); color: var(--white) !important; border-radius: 5px; }
-  .dp-day.other-month { color: var(--border); }
+  .dp-day.other-month { color: #ccc; cursor: pointer; }
+  /* ─── VARSEL-KLASSER ─── */
+  .varsel { border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; line-height: 1.5; }
+  .varsel-advarsel { background: #fff8e1; border-left: 3px solid #f59e0b; color: #92400e; }
+  .varsel-feil     { background: #fde8e8; border-left: 3px solid var(--high); color: #991b1b; }
+  .varsel-info     { background: #eef4ff; border-left: 3px solid #3a7bd5; color: #1e3a6e; }
+  .varsel-ok       { background: #f0fdf4; border-left: 3px solid var(--normal); color: #166534; }
+
+  .dp-day.other-month:hover { background: var(--bg-dark); }
   .dp-day.empty { cursor: default; }
 </style>
 </head>
@@ -813,12 +822,20 @@
         <div class="field-row">
           <div class="field" id="a-purregebyr-wrap" style="display:none;">
             <label>Purregebyr / standardkompensasjon</label>
-            <input type="text" inputmode="decimal" id="a-purregebyr" placeholder="kr 0" min="0" oninput="beregnAvdrag()">
+            <input type="text" inputmode="decimal" id="a-purregebyr" placeholder="kr 0" min="0" oninput="validerPurregebyr(); beregnAvdrag();">
+            <div id="a-purregebyr-varsel" style="display:none;font-size:12px;color:var(--high);margin-top:4px;"></div>
           </div>
           <div class="field" id="a-iv-forfall-wrap" style="display:none;">
             <label>Forfallsdato inkassovarsel (IV)</label>
             <input type="text" id="a-iv-forfall" placeholder="dd.mm.åååå" oninput="oppdaterFoerBO()">
             <div class="dato-feilmelding" id="a-iv-forfall-feil">Ugyldig dato</div>
+          </div>
+        </div>
+
+        <!-- Advarsel: IV ikke forfalt / foer-BO regler – vises over salær-seksjonen -->
+        <div id="foer-bo-varsel" style="display:none;margin-bottom:16px;">
+          <div class="varsel varsel-feil">
+            <span id="foer-bo-varsel-tekst"></span>
           </div>
         </div>
 
@@ -856,22 +873,41 @@
           </div>
 
           <!-- Scenario 1: IV ikke forfalt -->
-          <div id="foer-bo-iv-ikke-forfalt" style="display:none;font-size:13px;color:#1e3a6e;margin-bottom:8px;line-height:1.5;">
-            IV er ikke forfalt ennå. Regler:<br>
-            • Maks <strong>4 avdrag</strong><br>
-            • Første avdrag betales innen <strong id="foer-bo-forfall-dato">–</strong> (forfallsdato på IV)<br>
-            • Ingen salær påløper ennå
+          <div id="foer-bo-iv-ikke-forfalt" style="display:none;">
+            <div style="font-size:13px;font-weight:700;color:#1e3a6e;margin-bottom:8px;">Skyldner tar kontakt før frist i inkassovarsel har gått ut</div>
+
+            <div id="foer-bo-under-2500" style="display:none;background:#fde8e8;border-left:3px solid var(--high);border-radius:6px;padding:10px 12px;font-size:13px;color:#991b1b;margin-bottom:10px;">
+              ⚠ <strong>Kravet er under kr 2 500</strong> – det skal ikke inngås avdragsavtale. Skyldner må betale innen fristen i inkassovarselet.
+            </div>
+
+            <div id="foer-bo-over-2500" style="display:none;font-size:13px;color:#1e3a6e;line-height:1.6;margin-bottom:10px;">
+              • <strong>25%</strong> betales innen fristen i inkassovarselet (betalingsinformasjon i IV benyttes)<br>
+              • Restbeløp deles i maks <strong>3 avdrag</strong><br>
+              • Avdragsordning registreres kun hvis første avdrag mottas<br>
+              • <strong>Lett salær og avdragssalær legges ikke på</strong>
+            </div>
+
+            <div style="font-size:13px;color:#1e3a6e;margin-bottom:4px;">
+              Første avdrag betales innen <strong id="foer-bo-forfall-dato">–</strong> (forfallsdato på IV)
+            </div>
           </div>
 
           <!-- Scenario 2: IV forfalt -->
-          <div id="foer-bo-iv-forfalt" style="display:none;font-size:13px;color:#1e3a6e;margin-bottom:12px;line-height:1.5;">
-            IV har forfalt, men BO er ikke sendt. Regler:<br>
-            • Maks <strong>4 avdrag</strong><br>
-            • Første avdrag ≥ <strong>25% av totalkravet</strong><br>
-            • Lett salær påføres på dato satt nedenfor (ikke tungt salær med mindre mislighold)
+          <div id="foer-bo-iv-forfalt" style="display:none;">
+            <div style="font-size:13px;font-weight:700;color:#1e3a6e;margin-bottom:8px;">Skyldner tar kontakt etter at frist i inkassovarsel har gått ut</div>
+            <div style="font-size:13px;color:#1e3a6e;line-height:1.6;margin-bottom:12px;">
+              • Lett salær legges på den datoen BO skulle ha gått ut<br>
+              • Avdragssalær påløper ved mer enn 4 avdrag (dokumenter i saksnotat hvis frafalles)<br>
+              • <strong>Tungt salær påføres ikke</strong> – BO er ikke sendt<br>
+              • Skyldner må gjøres oppmerksom på mulighet til å betale uten disse omkostningene – noter i saksnotat<br>
+              • Ved mislighold: <strong>ikke friskmeld</strong> – send Betalingsoppfordring
+            </div>
+            <div style="background:#fff8e1;border-left:3px solid #f59e0b;border-radius:5px;padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:12px;">
+              ⚠ Husk å dokumentere i saksnotat at skyldner er informert om omkostningene.
+            </div>
           </div>
 
-          <div class="field" id="foer-bo-salar-dato-wrap" style="margin-bottom:0;display:none;">
+          <div class="field" id="foer-bo-salar-dato-wrap" style="display:none;margin-bottom:0;">
             <label>Dato lett salær påføres</label>
             <input type="text" id="a-salar-dato" placeholder="dd.mm.åååå" oninput="beregnAvdrag()">
             <div class="dato-feilmelding" id="a-salar-dato-feil">Ugyldig dato</div>
@@ -896,7 +932,7 @@
 
         <!-- Tungt salær – fremtidig -->
         <div id="tung-salar-fremtidig" style="display:none; margin-bottom:16px;">
-          <div style="background:#fff8e1;border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;font-size:13px;color:#92400e;">
+          <div class="varsel varsel-advarsel">
             ⏰ Tungt salær påløper <strong id="tung-salar-dato">–</strong> – erstatter lett salær, inkluderes i avtalen:
             <div style="margin-top:8px;">
               <input type="text" inputmode="decimal" id="a-tung-salar-fremtidig" placeholder="Totalt salær ved tungt (kr)"
@@ -935,23 +971,16 @@
             <div class="dato-feilmelding" id="a-dato-feil">Ugyldig dato</div>
         </div>
 
-        <!-- Advarsel: maks 4 avdrag / 25% første avdrag ved avdragsavtale før BO -->
-        <div id="foer-bo-varsel" style="display:none;margin-bottom:16px;">
-          <div style="background:#fde8e8;border-left:3px solid var(--high);border-radius:6px;padding:10px 14px;font-size:13px;color:#991b1b;">
-            <span id="foer-bo-varsel-tekst"></span>
-          </div>
-        </div>
-
         <!-- Advarsel: mer enn 4 avdrag -->
         <div id="avdrag-antall-varsel" style="display:none;margin-bottom:12px;">
-          <div style="background:#fde8e8;border-left:3px solid var(--high);border-radius:6px;padding:10px 14px;font-size:13px;color:#991b1b;">
+          <div class="varsel varsel-feil">
             ⚠ Mer enn 4 avdrag – vurder om dette er innenfor avtalte retningslinjer.
           </div>
         </div>
 
         <!-- Avdragssalær varsel – vises ved ≥5 avdrag -->
         <div id="avdragssalar-varsel" style="display:none; margin-bottom:16px;">
-          <div style="background:#fff8e1;border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;font-size:13px;color:#92400e;">
+          <div class="varsel varsel-advarsel">
             <div style="margin-bottom:10px;">
               ⚠ <strong>Avdragssalær</strong> påløper ved 5 eller flere avdrag.
               Maks sats: <strong id="avdragssalar-maks">kr 1 125,00</strong>
@@ -1001,6 +1030,7 @@
       <table class="avdrag-table" id="avdrag-tabell"></table>
       <div class="btn-row">
         <button class="btn-primary" onclick="kopierAvdrag()">📋 Kopier avdragsplan</button>
+        <button class="btn-secondary" onclick="lastNedAvdragPDF()">⬇ Last ned PDF</button>
         <button class="btn-secondary" onclick="nullstillAvdrag()">↺ Nullstill</button>
       </div>
     </div>
@@ -1327,73 +1357,123 @@ function dpRender() {
   if (!_dpAktiv) return;
   document.querySelectorAll('.dp-popup').forEach(e => e.remove());
 
-  const { input, år, mnd } = _dpAktiv;
+  const { input, år, mnd, visVelgMnd } = _dpAktiv;
   const iDag = new Date(); iDag.setHours(0,0,0,0);
   const valgt = parseNO(input.value.trim());
 
   const popup = document.createElement('div');
   popup.className = 'dp-popup';
-
-  // Sjekk om popupen vil gå utenfor høyre kant
   const rect = input.getBoundingClientRect();
   if (rect.left + 252 > window.innerWidth - 20) popup.classList.add('dp-right');
 
   const månNavn = ['Januar','Februar','Mars','April','Mai','Juni',
                    'Juli','August','September','Oktober','November','Desember'];
+  const månKort = ['Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Des'];
 
-  // Header
+  // ── Header ──
   const head = document.createElement('div');
   head.className = 'dp-head';
-  head.innerHTML = `
-    <button onclick="dpNaviger(-1)">◀</button>
-    <span>${månNavn[mnd]} ${år}</span>
-    <button onclick="dpNaviger(1)">▶</button>`;
+
+  if (visVelgMnd) {
+    // År-navigasjon i månedvelger
+    head.innerHTML = `
+      <button onclick="dpÅrNaviger(-1)">◀</button>
+      <span style="cursor:default;">${år}</span>
+      <button onclick="dpÅrNaviger(1)">▶</button>`;
+  } else {
+    head.innerHTML = `
+      <button onclick="dpNaviger(-1)">◀</button>
+      <span onclick="dpToggleMndVelger()" style="cursor:pointer;border-bottom:1px dashed var(--text-muted);">${månNavn[mnd]} ${år}</span>
+      <button onclick="dpNaviger(1)">▶</button>`;
+  }
   popup.appendChild(head);
 
-  // Dager-grid
-  const grid = document.createElement('div');
-  grid.className = 'dp-grid';
+  if (visVelgMnd) {
+    // ── Månedvelger grid ──
+    const mgrid = document.createElement('div');
+    mgrid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px 0;';
+    månKort.forEach((navn, idx) => {
+      const btn = document.createElement('button');
+      btn.textContent = navn;
+      btn.style.cssText = `padding:7px 4px;border:none;border-radius:5px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;
+        background:${idx === mnd ? 'var(--ink)' : 'var(--bg)'};
+        color:${idx === mnd ? 'var(--white)' : 'var(--text)'};`;
+      btn.onmouseenter = () => { if (idx !== mnd) btn.style.background = 'var(--bg-dark)'; };
+      btn.onmouseleave = () => { if (idx !== mnd) btn.style.background = 'var(--bg)'; };
+      btn.onclick = () => { _dpAktiv.mnd = idx; _dpAktiv.visVelgMnd = false; dpRender(); };
+      mgrid.appendChild(btn);
+    });
+    popup.appendChild(mgrid);
+  } else {
+    // ── Dager-grid ──
+    const grid = document.createElement('div');
+    grid.className = 'dp-grid';
 
-  // Ukedager – mandag først
-  ['Ma','Ti','On','To','Fr','Lø','Sø'].forEach(d => {
-    const el = document.createElement('div');
-    el.className = 'dp-dow';
-    el.textContent = d;
-    grid.appendChild(el);
-  });
+    ['Ma','Ti','On','To','Fr','Lø','Sø'].forEach(d => {
+      const el = document.createElement('div');
+      el.className = 'dp-dow';
+      el.textContent = d;
+      grid.appendChild(el);
+    });
 
-  // Første dag i måneden (justert til mandag=0)
-  const førsteDag = new Date(år, mnd, 1);
-  let startUkedag = førsteDag.getDay(); // 0=søn
-  startUkedag = (startUkedag + 6) % 7;  // gjør mandag=0
+    const førsteDag = new Date(år, mnd, 1);
+    let startUkedag = (førsteDag.getDay() + 6) % 7; // mandag=0
+    const dagerIMnd = new Date(år, mnd + 1, 0).getDate();
+    const dagerForrigeMnd = new Date(år, mnd, 0).getDate();
 
-  const dagerIMnd = new Date(år, mnd + 1, 0).getDate();
+    // Forrige måneds dager (grå)
+    for (let i = 0; i < startUkedag; i++) {
+      const dag = dagerForrigeMnd - startUkedag + i + 1;
+      const el = document.createElement('div');
+      el.className = 'dp-day other-month';
+      el.textContent = dag;
+      el.onclick = () => { dpNaviger(-1); };
+      grid.appendChild(el);
+    }
 
-  // Tomme celler før første dag
-  for (let i = 0; i < startUkedag; i++) {
-    const el = document.createElement('div');
-    el.className = 'dp-day empty';
-    grid.appendChild(el);
+    // Denne måneds dager
+    for (let dag = 1; dag <= dagerIMnd; dag++) {
+      const d = new Date(år, mnd, dag);
+      const el = document.createElement('div');
+      el.className = 'dp-day';
+      el.textContent = dag;
+      if (d.toDateString() === iDag.toDateString()) el.classList.add('today');
+      if (valgt && d.toDateString() === valgt.toDateString()) el.classList.add('selected');
+      if (norskHelligdag(d)) el.classList.add('helligdag');
+      else if (d.getDay() === 0 || d.getDay() === 6) el.classList.add('weekend');
+      el.onclick = () => dpVelg(dag);
+      grid.appendChild(el);
+    }
+
+    // Neste måneds dager (grå) – fyll opp til 6 rader
+    const totaltVist = startUkedag + dagerIMnd;
+    const nesteDager = totaltVist % 7 === 0 ? 0 : 7 - (totaltVist % 7);
+    for (let dag = 1; dag <= nesteDager; dag++) {
+      const el = document.createElement('div');
+      el.className = 'dp-day other-month';
+      el.textContent = dag;
+      el.onclick = () => { dpNaviger(1); };
+      grid.appendChild(el);
+    }
+
+    popup.appendChild(grid);
   }
 
-  for (let dag = 1; dag <= dagerIMnd; dag++) {
-    const d = new Date(år, mnd, dag);
-    const el = document.createElement('div');
-    el.className = 'dp-day';
-    el.textContent = dag;
-    if (d.toDateString() === iDag.toDateString()) el.classList.add('today');
-    if (valgt && d.toDateString() === valgt.toDateString()) el.classList.add('selected');
-    if (norskHelligdag(d)) el.classList.add('helligdag');
-    else if (d.getDay() === 0 || d.getDay() === 6) el.classList.add('weekend');
-    el.onclick = () => dpVelg(dag);
-    grid.appendChild(el);
-  }
-  popup.appendChild(grid);
-
-  // Plasser popupen relativt til wrapper
   const wrap = input.closest('.dp-wrap') || input.parentElement;
   wrap.style.position = 'relative';
   wrap.appendChild(popup);
+}
+
+function dpToggleMndVelger() {
+  if (!_dpAktiv) return;
+  _dpAktiv.visVelgMnd = !_dpAktiv.visVelgMnd;
+  dpRender();
+}
+
+function dpÅrNaviger(retning) {
+  if (!_dpAktiv) return;
+  _dpAktiv.år += retning;
+  dpRender();
 }
 
 function dpNaviger(retning) {
@@ -1412,9 +1492,8 @@ function dpVelg(dag) {
   const mm   = String(d.getMonth()+1).padStart(2,'0');
   const yyyy = d.getFullYear();
   input.value = `${dd}.${mm}.${yyyy}`;
-  fjernDatoFeil(input);
-  triggerBeregning(input);
   dpLukk();
+  autoFormatDato(input); // validerer og triggerBeregning
 }
 
 // Lukk ved klikk utenfor
@@ -1443,7 +1522,7 @@ function fjernDatoFeil(input) {
 }
 
 // Datoer som ikke bør ligge frem i tid
-const DATO_IKKE_FREMTID = ['a-forfall', 'a-iv-forfall', 'a-bo-dato', 'rn-fra'];
+const DATO_IKKE_FREMTID = ['a-forfall', 'a-bo-dato', 'a-dato', 'rn-fra'];
 
 function autoFormatDato(input) {
   let val = input.value.replace(/\D/g, '');
@@ -1473,6 +1552,24 @@ function autoFormatDato(input) {
     input.value = formatted;
     settDatoFeil(input, 'Datoen kan ikke ligge frem i tid');
     return;
+  }
+
+  // Spesialvalidering for IV-forfallsdato
+  if (input.id === 'a-iv-forfall') {
+    const forfDato = parseNO(document.getElementById('a-forfall').value.trim());
+    if (forfDato) {
+      const minIVDato = new Date(forfDato);
+      minIVDato.setDate(minIVDato.getDate() + 14);
+      if (dato < forfDato) {
+        input.value = formatted;
+        settDatoFeil(input, 'IV kan ikke sendes før fakturaens forfallsdato');
+        return;
+      } else if (dato < minIVDato) {
+        input.value = formatted;
+        settDatoFeil(input, `Minimum 14 dager etter forfallsdato (tidligst ${formatDato(minIVDato)})`);
+        return;
+      }
+    }
   }
 
   fjernDatoFeil(input);
@@ -1809,7 +1906,7 @@ function visForlikResultat(v, total, forlik, sparer, nyHoved, nyGebyr, nyRenter,
   // Advarsel hvis avslag på hovedstol
   let varselHtml = '';
   if (hovedstolAvslag > 0.01) {
-    varselHtml = `<div style="background:#fde8e8;border-left:3px solid var(--high);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#991b1b;">
+    varselHtml = `<div class="varsel varsel-feil">
       ⚠ <strong>OBS: Forliket innebærer avslag på hovedstol med ${kr(hovedstolAvslag)}.</strong>
       Dette er kreditors penger – sørg for at dette er godkjent før forlik inngås.
     </div>`;
@@ -1959,17 +2056,15 @@ function _proporsjonalData() {
   return { hoved, gebyr, renter, rettslig, tilbyr, total, fordelbar };
 }
 
-function forhandsvisProporsjonal() {}  // ikke lenger i bruk
-function brukProporsjonal() {}         // ikke lenger i bruk
 
 
 function nullstillForlik() {
   ['f-hovedstol','f-gebyr','f-renter','f-rettslige','f-direkte','f-tilbyr','f-kontonummer','f-kid'].forEach(id => {
-    document.getElementById(id).value = '';
+    const el = document.getElementById(id); if (el) el.value = '';
   });
   ['sl-total','sl-salar','sl-renter','sl-hoved'].forEach(id => {
-    document.getElementById(id).value = 0;
-    document.getElementById(id + '-val').textContent = '0%';
+    const el = document.getElementById(id); if (el) el.value = 0;
+    const val = document.getElementById(id + '-val'); if (val) val.textContent = '0%';
   });
   document.getElementById('breakdown-forlik').innerHTML = '';
   ['r-forlik','r-sparer','r-total'].forEach(id => {
@@ -1997,7 +2092,10 @@ function beregnAvdragsgebyr() {
   const grunnlag = INKASSOSATS * 1.5;
   return Math.round((mva === 'nei' ? grunnlag * 1.25 : grunnlag) * 100) / 100;
 }
-const BO_FRIST_DAGER = 43;
+// Forfallsdato på BO = BO-dato + 14 dager, forskyves til neste virkedag (§ 2-3)
+// Tungt salær påløper forfallsdato + 28 dager (ingen justering – kan falle på helg/helligdag)
+const BO_BETALINGSFRIST = 14;
+const BO_OVERSITTELSE = 28;
 
 /* ════════════════════════════════
    HELLIGDAGER OG UKEDAG-JUSTERING
@@ -2191,6 +2289,23 @@ function oppdaterAvdragssalar(pst) {
   beregnAvdrag();
 }
 
+function validerPurregebyr() {
+  const beloep    = parseKr(document.getElementById('a-purregebyr').value) || 0;
+  const skyldner  = document.getElementById('a-skyldner').value;
+  const varsel    = document.getElementById('a-purregebyr-varsel');
+  if (!varsel) return;
+
+  const maks = skyldner === 'naring' ? 460 : 76;
+  const type = skyldner === 'naring' ? 'næringsdrivende' : 'privatperson';
+
+  if (beloep > maks) {
+    varsel.style.display = 'block';
+    varsel.textContent   = `⚠ Maks purregebyr/standardkompensasjon for ${type} er kr ${maks}`;
+  } else {
+    varsel.style.display = 'none';
+  }
+}
+
 function oppdaterFoerBO() {
   const forfDato     = parseNO(document.getElementById('a-forfall').value.trim());
   const ivForfallStr = document.getElementById('a-iv-forfall').value.trim();
@@ -2198,6 +2313,8 @@ function oppdaterFoerBO() {
   const boDato       = parseNO(document.getElementById('a-bo-dato').value.trim());
   const iDag         = new Date(); iDag.setHours(0,0,0,0);
   const boIkkeSendt  = document.getElementById('a-bo-ikke-sendt').checked;
+
+  // Valideringen av IV-forfallsdato skjer i autoFormatDato
 
   const panel = document.getElementById('foer-bo-panel');
   if (!panel) { beregnAvdrag(); return; }
@@ -2210,6 +2327,15 @@ function oppdaterFoerBO() {
     document.getElementById('foer-bo-iv-ikke-forfalt').style.display = ivForfalt ? 'none' : 'block';
     document.getElementById('foer-bo-iv-forfalt').style.display      = ivForfalt ? 'block' : 'none';
     document.getElementById('foer-bo-salar-dato-wrap').style.display = ivForfalt ? 'block' : 'none';
+
+    // Scenario 1: vis under/over 2500-panel
+    if (!ivForfalt) {
+      const hovedstol = parseKr(document.getElementById('a-hovedstol').value) || 0;
+      const under2500 = document.getElementById('foer-bo-under-2500');
+      const over2500  = document.getElementById('foer-bo-over-2500');
+      if (under2500) under2500.style.display = (hovedstol > 0 && hovedstol < 2500) ? 'block' : 'none';
+      if (over2500)  over2500.style.display  = (hovedstol >= 2500) ? 'block' : 'none';
+    }
 
     if (!ivForfalt && ivForfallDato) {
       document.getElementById('foer-bo-forfall-dato').textContent = formatDato(ivForfallDato);
@@ -2259,6 +2385,7 @@ function oppdaterSalar() {
       tungFremtidig.value = s.tungt;
     }
   }
+  validerPurregebyr();
   beregnAvdrag();
 }
 
@@ -2267,7 +2394,6 @@ function synkMndBelop(kilde) {
   if (!hovedstol) { beregnAvdrag(); return; }
   const mndEl   = document.getElementById('a-mnd');
   const belopEl = document.getElementById('a-mnd-belop');
-  window._sisteAvdragKilde = kilde;
   if (kilde === 'mnd') {
     // Nullstill terminer kun hvis antall måneder endres
     const nyMnd = parseInt(mndEl.value) || 0;
@@ -2287,13 +2413,14 @@ function synkMndBelop(kilde) {
 }
 
 function beregnAvdrag() {
+  const mndEl   = document.getElementById('a-mnd');
+  const belopEl = document.getElementById('a-mnd-belop');
+  if (!mndEl || !belopEl) return;
   const hovedstol  = parseKr(document.getElementById('a-hovedstol').value) || 0;
   const lettSalar  = parseKr(document.getElementById('a-salar').value)      || 0;
   const purregebyr    = parseKr(document.getElementById('a-purregebyr').value) || 0;
   const rettsligeRaw = parseKr(document.getElementById('a-rettslige').value) || 0;
   const rettslige    = rettsligeRaw + purregebyr;
-  const mndEl      = document.getElementById('a-mnd');
-  const belopEl    = document.getElementById('a-mnd-belop');
   const mndInput   = parseInt(mndEl.value)      || 0;
   const belopInput = parseKr(belopEl.value)     || 0;
   const forfallStr    = document.getElementById('a-forfall').value.trim();
@@ -2313,9 +2440,14 @@ function beregnAvdrag() {
   let tungSalar       = 0;
 
   if (boDato) {
-    tungPalopDato = new Date(boDato);
-    tungPalopDato.setDate(tungPalopDato.getDate() + BO_FRIST_DAGER);
-    tungPalopDato = nesteUkedag(tungPalopDato);
+    // Forfallsdato på BO = BO-dato + 14 dager, forskyves til neste virkedag
+    const boForfall = new Date(boDato);
+    boForfall.setDate(boForfall.getDate() + BO_BETALINGSFRIST);
+    const boForfallJustert = nesteUkedag(boForfall);
+
+    // Tungt salær: forfallsdato oversittet med mer enn 28 dager (ingen helg-justering)
+    tungPalopDato = new Date(boForfallJustert);
+    tungPalopDato.setDate(tungPalopDato.getDate() + BO_OVERSITTELSE + 1);
     tungPaloppt = iDag >= tungPalopDato;
   }
 
@@ -2343,7 +2475,9 @@ function beregnAvdrag() {
   }
 
   // ── IV ikke forfalt: ingen salær, kun purregebyr ──
-  const ivIkkeForfalt = ivForfallDato && ivForfallDato > iDag;
+  // IV ikke forfalt: kun relevant hvis forfallsdato er gyldig og ikke i fremtiden for fakturaen
+  const forfDatoGyldig = forfDato && forfDato <= iDag;
+  const ivIkkeForfalt = forfDatoGyldig && ivForfallDato && ivForfallDato > iDag;
   const salarWrap = document.getElementById('inkasso-salar-wrap');
   if (salarWrap) salarWrap.style.display = ivIkkeForfalt ? 'none' : 'block';
 
@@ -2434,20 +2568,20 @@ function beregnAvdrag() {
   const foerBOTekst  = document.getElementById('foer-bo-varsel-tekst');
 
   if (foerBO) {
+    // Maks avdrag: 3 hvis IV ikke forfalt (25% + 3 avdrag), 4 hvis IV forfalt
+    const maksAvdrag = ivIkkeForfaltFoerBO ? 3 : 4;
+
     if (!mnd && !fastMndBelop) {
-      mnd = 4;
-      mndEl.value = 4;
+      mnd = maksAvdrag;
+      mndEl.value = maksAvdrag;
       mndEl.dataset.beregnet = '1';
       fastMndBelop = null;
-    } else if (mnd && mnd > 4) {
-      mnd = 4;
-      mndEl.value = 4;
+    } else if (mnd && mnd > maksAvdrag) {
+      mnd = maksAvdrag;
+      mndEl.value = maksAvdrag;
       mndEl.dataset.beregnet = '1';
       fastMndBelop = null;
     }
-
-      window._foerBO_settStartDato = ivIkkeForfaltFoerBO && ivForfallDato
-        ? new Date(ivForfallDato) : null;
 
     if (foerBOVarsel) foerBOVarsel.style.display = 'block';
   } else {
@@ -2455,12 +2589,36 @@ function beregnAvdrag() {
   }
 
   // Advarsel ved mer enn 4 avdrag
+  // Når beløp er manuelt tastet: estimer antall avdrag fra total/beløp
   const antallVarsel = document.getElementById('avdrag-antall-varsel');
-  if (antallVarsel) antallVarsel.style.display = (mnd && mnd > 4) ? 'block' : 'none';
+  if (antallVarsel) {
+    let estimertMnd = mnd;
+    if (!estimertMnd && fastMndBelop) {
+      const totalVedForfallEst = hovedstol + (effektivLettSalar || 0) + rettslige;
+      estimertMnd = totalVedForfallEst > 0 ? Math.ceil(totalVedForfallEst / fastMndBelop) : null;
+    }
+    antallVarsel.style.display = (estimertMnd && estimertMnd > 4) ? 'block' : 'none';
+  }
 
-  // Avdragssalær kun ved 5+ avdrag (etter evt. begrensning til 4)
-  const visAvdragsVarsel = mnd ? mnd >= 5 : false;
+  // Avdragssalær: ikke tillatt ved rettslig inkasso (rettslige kostnader er lagt til)
+  const erRettsligInkasso = rettslige > 0;
+
+  // Avdragssalær kun ved 5+ avdrag og ikke rettslig inkasso
+  const estimertMndForSalar = mnd ?? (fastMndBelop ? Math.ceil((hovedstol + (effektivLettSalar||0) + rettslige) / fastMndBelop) : 0);
+  const visAvdragsVarsel = estimertMndForSalar >= 5 && !erRettsligInkasso;
   document.getElementById('avdragssalar-varsel').style.display = visAvdragsVarsel ? 'block' : 'none';
+
+  // Vis info-melding hvis rettslig inkasso blokkerer avdragssalær
+  let rettsligInfoEl = document.getElementById('avdragssalar-rettslig-info');
+  if (!rettsligInfoEl) {
+    rettsligInfoEl = document.createElement('div');
+    rettsligInfoEl.id = 'avdragssalar-rettslig-info';
+    rettsligInfoEl.style.cssText = 'display:none;background:#f0fdf4;border-left:3px solid var(--normal);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#166534;';
+    rettsligInfoEl.innerHTML = '✓ Avdragssalær beregnes ikke ved rettslig inkasso.';
+    const varselEl = document.getElementById('avdragssalar-varsel');
+    if (varselEl) varselEl.parentNode.insertBefore(rettsligInfoEl, varselEl);
+  }
+  rettsligInfoEl.style.display = (erRettsligInkasso && estimertMndForSalar >= 5) ? 'block' : 'none';
 
   // Oppdater maks-beløp i varselet
   const maksAvdragsgebyr = beregnAvdragsgebyr();
@@ -2469,8 +2627,8 @@ function beregnAvdrag() {
   if (maksEl) maksEl.textContent = kr(maksAvdragsgebyr);
   if (maksLabelEl) maksLabelEl.textContent = kr(maksAvdragsgebyr);
 
-  // Beregn faktisk avdragsgebyr basert på slider (0–100%)
-  const sliderPst = visAvdragsVarsel
+  // Beregn faktisk avdragsgebyr basert på slider (0–100%) – aldri ved rettslig inkasso
+  const sliderPst = (visAvdragsVarsel && !erRettsligInkasso)
     ? parseInt(document.getElementById('sl-avdragssalar')?.value || 100) / 100
     : 0;
   const avdragsgebyr = Math.round(maksAvdragsgebyr * sliderPst * 100) / 100;
@@ -2482,14 +2640,17 @@ function beregnAvdrag() {
   // Splitt: hva som er påløpt nå vs. hva som legges til når tungt salær påløper
   // Hvis tungt ikke har påløpt: start med lett salær, legg til differansen på tungPalopDato
   // Splitt: hva som er påløpt nå vs. hva som legges til når lett salær påløper (før BO)
-  const salarDatoStr  = document.getElementById('a-salar-dato')?.value.trim();
+  const salarDatoStr   = document.getElementById('a-salar-dato')?.value.trim();
   const salarPalopDato = foerBO && salarDatoStr ? parseNO(salarDatoStr) : null;
   const lettSalarIkkeEndaPaloppt = salarPalopDato && salarPalopDato > iDag;
+  // Hvis BO ikke sendt og ingen dato for salær er satt → salær påløper ikke i avtalen
+  const foerBOUtenSalarDato = foerBO && !salarDatoStr;
 
-  // Hvis lett salær ikke har påløpt ennå (før BO-scenario): start med 0, legg til på salarPalopDato
-  const salarNaa       = tungPaloppt ? tungSalar
-                       : lettSalarIkkeEndaPaloppt ? 0
-                       : effektivLettSalar;
+  // salarNaa: påløpt salær per i dag
+  const salarNaa = tungPaloppt ? tungSalar
+                 : (lettSalarIkkeEndaPaloppt || foerBOUtenSalarDato) ? 0
+                 : effektivLettSalar;
+
   const lettSalarDifferanse = lettSalarIkkeEndaPaloppt ? effektivLettSalar : 0;
   const salarDifferanse = (!tungPaloppt && tungSalar > 0) ? (tungSalar - effektivLettSalar)
                         : lettSalarIkkeEndaPaloppt ? effektivLettSalar
@@ -2504,7 +2665,7 @@ function beregnAvdrag() {
   })();
 
   // Scenario: IV ikke forfalt og BO ikke sendt → første forfall = forfallsdato på IV
-  if (window._foerBO_settStartDato) startDato = window._foerBO_settStartDato;
+  if (ivIkkeForfaltFoerBO && ivForfallDato) startDato = new Date(ivForfallDato);
 
   // ── Renter fra i dag til første forfall – separat for hovedstol og salær ──
   const dagerTilForfall = dagMellom(iDag, startDato);
@@ -2526,26 +2687,32 @@ function beregnAvdrag() {
     const salarDato    = parseNO(salarDatoStr);
     let foerBOMsg;
     if (ivIkkeForfaltFoerBO) {
-      foerBOMsg = `⚠ <strong>Avdragsavtale før BO (IV ikke forfalt):</strong> Maks 4 avdrag. Første avdrag betales innen <strong>${ivForfallDato ? formatDato(ivForfallDato) : '–'}</strong> (forfallsdato på IV). Purregebyr/standardkompensasjon betales.`;
+      if (hovedstol < 2500) {
+        foerBOMsg = `⚠ <strong>Kravet er under kr 2 500</strong> – det skal ikke inngås avdragsavtale. Skyldner betaler innen fristen i inkassovarselet.`;
+      } else {
+        const minFoerste = totalVedForfall * 0.25;
+        foerBOMsg = `⚠ <strong>IV ikke forfalt:</strong> 25% (${kr(minFoerste)}) betales innen <strong>${ivForfallDato ? formatDato(ivForfallDato) : '–'}</strong>. Restbeløp deles i maks 3 avdrag. Ingen salær legges på.`;
+      }
     } else {
       const minFoerste = totalVedForfall * 0.25;
-      foerBOMsg = `⚠ <strong>Avdragsavtale før BO (IV forfalt):</strong> Maks 4 avdrag. Første avdrag må være minst <strong>${kr(minFoerste)}</strong> (25% av totalkravet ${kr(totalVedForfall)}).`;
-      if (salarDato) foerBOMsg += ` Lett salær påføres <strong>${formatDato(salarDato)}</strong>.`;
+      foerBOMsg = `⚠ <strong>IV forfalt, BO ikke sendt:</strong> Maks 4 avdrag. Første avdrag ≥ <strong>${kr(minFoerste)}</strong> (25% av ${kr(totalVedForfall)}).`;
+      if (salarDato) foerBOMsg += ` Lett salær påføres <strong>${formatDato(salarDato)}</strong>. Husk saksnotat.`;
+      else foerBOMsg += ` Husk å angi dato for lett salær og dokumentere i saksnotat.`;
     }
     if (foerBOTekst) foerBOTekst.innerHTML = foerBOMsg;
   }
 
   if (mnd >= 5 && avdragsgebyr > 0) {
-    varsler += `<div style="background:#fff8e1;border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e;">
+    varsler += `<div class="varsel varsel-advarsel">
       ⚠ <strong>Avdragssalær ${kr(avdragsgebyr)}</strong> er lagt til (${mnd || '?'} avdrag).
     </div>`;
   } else if (mnd >= 5 && avdragsgebyr === 0) {
-    varsler += `<div style="background:#f0fdf4;border-left:3px solid var(--normal);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#166534;">
+    varsler += `<div class="varsel varsel-ok">
       ✓ Avdragssalær er satt til kr 0.
     </div>`;
   }
   if (!tungPaloppt && tungSalar > 0) {
-    varsler += `<div style="background:#fff8e1;border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e;">
+    varsler += `<div class="varsel varsel-advarsel">
       ⏰ Tungt salær <strong>${kr(tungSalar)}</strong> er inkludert i avtalen – påløper <strong>${formatDato(tungPalopDato)}</strong>.
     </div>`;
   }
@@ -2746,7 +2913,7 @@ function beregnAvdragsPlan(terminer, meta) {
     // Terminbeløp: manuelt satt brukes direkte, ellers fastMndBelop
     // Siste termin: aldri mer enn fastMndBelop (ekstra termin tar resten)
     // Unntak: normal beregning uten manuelle beløp og siste termin = eksakt gjenstående
-    const harNoenManuelle = terminer.some(t => t.belop !== null);
+    const harNoenManuelle = meta.manuellRedigering || terminer.some(t => t.belop !== null);
     let betaling;
     if (terminer[i].belop !== null) {
       betaling = terminer[i].belop;
@@ -2946,18 +3113,40 @@ function redigerDato(idx) {
   function bekreft() {
     const ny = parseNO(inp.value) || autoFormatOgParse(inp.value);
     if (ny) {
-      terminer[idx].dato = ny;
-      // Forskyv alle påfølgende terminer med samme diff
-      const diff = dagMellom(gjeldende, ny);
-      for (let j = idx + 1; j < terminer.length; j++) {
-        const d = new Date(terminer[j].dato);
-        d.setDate(d.getDate() + diff);
-        terminer[j].dato = d;
+      // Valider at datoen er etter forrige termin
+      const forrigeDato = idx > 0 ? new Date(terminer[idx - 1].dato) : null;
+      if (forrigeDato && ny <= forrigeDato) {
+        inp.style.border = '1px solid var(--high)';
+        inp.title = `Dato må være etter termin ${idx} (${formatDato(forrigeDato)})`;
+        inp.select();
+        return;
       }
-      // Nullstill manuelle beløp – bruk originalt fastMndBelop
+
+      const gammel = new Date(terminer[idx].dato);
+      terminer[idx].dato = ny;
+
+      // Beregn månedsdiff mellom gammel og ny dato
+      const månedsDiff = (ny.getFullYear() - gammel.getFullYear()) * 12
+                       + (ny.getMonth() - gammel.getMonth());
+
+      if (månedsDiff !== 0) {
+        // Forskyv påfølgende terminer med samme antall hele måneder
+        // men behold opprinnelig dag-i-måneden fra startDato
+        for (let j = idx + 1; j < terminer.length; j++) {
+          const orig = new Date(terminer[j].dato);
+          const nyMnd = orig.getMonth() + månedsDiff;
+          const nyÅr  = orig.getFullYear() + Math.floor(nyMnd / 12);
+          const normMnd = ((nyMnd % 12) + 12) % 12;
+          // Bruk siste dag i måneden hvis original dag ikke finnes
+          const dagerIMnd = new Date(nyÅr, normMnd + 1, 0).getDate();
+          const nyDag = Math.min(orig.getDate(), dagerIMnd);
+          terminer[j].dato = new Date(nyÅr, normMnd, nyDag);
+        }
+      }
+
       for (let j = 0; j < terminer.length; j++) terminer[j].belop = null;
+      meta.manuellRedigering = true;
     }
-    meta.manuellRedigering = false;
     renderAvdragsplan();
   }
 
@@ -3013,6 +3202,152 @@ function redigerBelop(idx) {
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } if (e.key === 'Escape') renderAvdragsplan(); });
 }
 
+function lastNedAvdragPDF() {
+  const meta    = window._avdragsMeta;
+  const terminer = window._avdragsTerminer;
+  if (!meta || !terminer) { alert('Beregn avdragsplan først.'); return; }
+  if (!window.jspdf) { alert('PDF-biblioteket er ikke lastet ennå. Prøv igjen om et øyeblikk.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const marg = 16;
+  const sw   = 210 - marg * 2; // skrivbar bredde
+  let y = 0;
+
+  // ── Hjelpefunksjoner ──
+  const linje = (tekst, x, yPos, size=10, bold=false, farge=[30,30,46]) => {
+    doc.setFontSize(size);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setTextColor(...farge);
+    doc.text(tekst, x, yPos);
+  };
+
+  const hLinje = (yPos, farge=[220,220,215]) => {
+    doc.setDrawColor(...farge);
+    doc.setLineWidth(0.3);
+    doc.line(marg, yPos, 210 - marg, yPos);
+  };
+
+  // ── Header ──
+  doc.setFillColor(30, 30, 46);
+  doc.rect(0, 0, 210, 24, 'F');
+  doc.setFillColor(230, 245, 53);
+  doc.rect(0, 21, 210, 3, 'F');
+  linje('Inkasso Toolkit', marg, 15, 14, true, [255,255,255]);
+  linje('Avdragsplan', marg + 52, 15, 9, false, [180,180,200]);
+  linje(new Date().toLocaleDateString('no-NO'), 210 - marg, 15, 8, false, [180,180,200]);
+  doc.setTextColor(180,180,200);
+  doc.setFontSize(8);
+  doc.text(new Date().toLocaleDateString('no-NO'), 210 - marg, 15, { align: 'right' });
+
+  y = 33;
+
+  // ── Sammendrag ──
+  const rader = beregnAvdragsPlan(terminer, meta);
+  const totalBetalt = rader.reduce((s, r) => s + r.betaling, 0);
+  const totalRenter = rader.reduce((s, r) => s + r.nyeRenter, 0);
+
+  linje('Sammendrag', marg, y, 10, true); y += 5;
+  hLinje(y); y += 4;
+
+  const sumRader = [
+    ['Hovedstol', kr(meta.startSaldoHovedstol)],
+    ['Inkassosalær', kr(meta.startSaldoSalar)],
+    meta.startSaldoRettslige ? ['Rettslige kostnader', kr(meta.startSaldoRettslige)] : null,
+    ['Renter ved avtaleinngåelse', kr(meta.startSaldoRenter)],
+    ['Renter i avtaleperioden', kr(totalRenter)],
+  ].filter(Boolean);
+
+  sumRader.forEach(([label, val]) => {
+    linje(label, marg, y, 9, false, [80,80,100]);
+    linje(val, 210 - marg, y, 9, false, [30,30,46]);
+    doc.setFontSize(9);
+    doc.text(val, 210 - marg, y, { align: 'right' });
+    y += 5;
+  });
+
+  hLinje(y); y += 4;
+  linje('Totalt betalt i avtalen', marg, y, 10, true);
+  doc.setFontSize(10); doc.setFont('helvetica','bold');
+  doc.text(kr(totalBetalt), 210 - marg, y, { align: 'right' });
+  y += 8;
+
+  // ── Avdragstabell ──
+  linje('Avdragsplan', marg, y, 10, true); y += 5;
+
+  // Kolonner
+  const kol = [
+    { label: '#',            x: marg,      w: 8,  align: 'left'  },
+    { label: 'Forfall',      x: marg+9,    w: 24, align: 'left'  },
+    { label: 'Innbetaling',  x: marg+34,   w: 26, align: 'right' },
+    { label: '→ Salær',      x: marg+61,   w: 22, align: 'right' },
+    { label: '→ Hovedstol',  x: marg+84,   w: 26, align: 'right' },
+    { label: '→ Renter',     x: marg+111,  w: 22, align: 'right' },
+    { label: 'Rest total',   x: marg+134,  w: 28, align: 'right' },
+  ];
+
+  // Header-rad
+  doc.setFillColor(30, 30, 46);
+  doc.rect(marg, y - 4, sw, 6, 'F');
+  kol.forEach(k => {
+    doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+    if (k.align === 'right') doc.text(k.label, k.x + k.w, y, { align: 'right' });
+    else doc.text(k.label, k.x, y);
+  });
+  y += 4;
+
+  // Dataradene
+  rader.forEach((r, i) => {
+    if (y > 275) {
+      doc.addPage();
+      y = 20;
+    }
+
+    if (i % 2 === 0) {
+      doc.setFillColor(248, 248, 245);
+      doc.rect(marg, y - 3.5, sw, 5.5, 'F');
+    }
+    if (r.ekstraTermin) {
+      doc.setFillColor(255, 248, 225);
+      doc.rect(marg, y - 3.5, sw, 5.5, 'F');
+    }
+
+    const celler = [
+      r.nr + (r.ekstraTermin ? '+' : ''),
+      formatDato(r.forfallDato),
+      kr(r.betaling),
+      r.tilSalar  > 0.005 ? kr(r.tilSalar)      : '–',
+      r.tilHovedstol > 0.005 ? kr(r.tilHovedstol) : '–',
+      r.tilRenter > 0.005 ? kr(r.tilRenter)     : '–',
+      kr(r.restTotal),
+    ];
+
+    const erSiste = r.restTotal < 0.01;
+    celler.forEach((tekst, ci) => {
+      const k = kol[ci];
+      doc.setFontSize(8);
+      doc.setFont('helvetica', (ci === 2 || erSiste) ? 'bold' : 'normal');
+      doc.setTextColor(30, 30, 46);
+      if (k.align === 'right') doc.text(tekst, k.x + k.w, y, { align: 'right' });
+      else doc.text(tekst, k.x, y);
+    });
+    y += 5.5;
+  });
+
+  hLinje(y); y += 6;
+
+  // ── Footer ──
+  const sider = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= sider; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(160,160,175);
+    doc.text(`© ${new Date().getFullYear()} William H.B. – Inkasso Toolkit`, marg, 295);
+    doc.text(`Side ${i} av ${sider}`, 210 - marg, 295, { align: 'right' });
+  }
+
+  doc.save('avdragsplan.pdf');
+}
 function kopierAvdrag() {
   const rows = document.querySelectorAll('#avdrag-tabell tbody tr');
   let tekst = 'AVDRAGSPLAN\n' + '─'.repeat(70) + '\n';
