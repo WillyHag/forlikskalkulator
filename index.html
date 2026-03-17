@@ -622,6 +622,7 @@
     <button class="tab active" onclick="switchTab('forlik')">⚖ Forlik</button>
     <button class="tab" onclick="switchTab('avdrag')">📅 Avdragsordning</button>
     <button class="tab" onclick="switchTab('rente')">% Renter</button>
+    <button class="tab" onclick="switchTab('simulator')">⚡ Simulator</button>
   </div>
 
   <!-- ══════════════════════════════
@@ -1104,6 +1105,116 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ══════════════════════════════
+       TAB 4 – SIMULATOR
+  ══════════════════════════════ -->
+  <div class="tab-content" id="tab-simulator">
+    <div class="avdrag-layout">
+
+      <!-- INPUT -->
+      <div class="panel">
+        <div class="panel-title">hva hvis…</div>
+
+        <div class="field">
+          <label>Total saldo</label>
+          <input type="text" inputmode="decimal" id="sim-saldo" placeholder="kr 0" oninput="simOppdaterSaldo(this)">
+        </div>
+
+        <div style="background:var(--bg);border-radius:6px;padding:8px 14px;margin-bottom:16px;font-size:12px;color:var(--text-muted);border:1px solid var(--border);">
+          Rentesats: <strong style="color:var(--ink)" id="sim-rente-auto">12,00%</strong> p.a. (Finanstilsynets forsinkelsesrente)
+        </div>
+
+        <div class="field">
+          <label>Startdato (første avdrag)</label>
+          <input type="text" id="sim-startdato" placeholder="dd.mm.åååå" oninput="simBeregn()">
+          <div class="dato-feilmelding" id="sim-startdato-feil">Ugyldig dato</div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);margin:16px 0 20px;"></div>
+
+        <!-- Avdrag slider -->
+        <div class="slider-wrap" style="margin-bottom:20px;">
+          <label>
+            Månedlig avdrag
+            <span class="slider-value" id="sim-avdrag-val" style="cursor:default;">kr 1 000</span>
+          </label>
+          <input type="range" id="sim-avdrag-slider" min="100" max="10000" step="50" value="1000"
+                 oninput="simOppdaterAvdragSlider(this.value)">
+          <div class="slider-marks"><span>kr 100</span><span id="sim-slider-maks-label">kr 10 000</span></div>
+          <input type="text" inputmode="decimal" id="sim-avdrag" placeholder="kr 0"
+                 oninput="simOppdaterAvdragInput(this.value)"
+                 style="margin-top:8px;width:100%;padding:10px 14px;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;border:1px solid var(--border);border-radius:7px;outline:none;background:var(--white);">
+        </div>
+
+        <!-- Hurtigvalg -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);width:100%;margin-bottom:2px;">Hurtigvalg</span>
+          <button onclick="simSettAvdrag(500)"  class="btn-secondary" style="flex:1;padding:7px 4px;font-size:12px;">kr 500</button>
+          <button onclick="simSettAvdrag(1000)" class="btn-secondary" style="flex:1;padding:7px 4px;font-size:12px;">kr 1 000</button>
+          <button onclick="simSettAvdrag(1500)" class="btn-secondary" style="flex:1;padding:7px 4px;font-size:12px;">kr 1 500</button>
+          <button onclick="simSettAvdrag(2000)" class="btn-secondary" style="flex:1;padding:7px 4px;font-size:12px;">kr 2 000</button>
+          <button onclick="simSett4Avdrag()" class="btn-secondary" style="flex:1;padding:7px 4px;font-size:12px;font-weight:700;">4 avdrag</button>
+        </div>
+
+        <!-- Advarsel: mer enn 4 avdrag -->
+        <div id="sim-antall-varsel" style="display:none;" class="varsel varsel-advarsel">
+          ⚠ Mer enn 4 avdrag – vurder om dette er innenfor avtalte retningslinjer.
+        </div>
+
+        <!-- Startbetaling -->
+        <div class="field">
+          <label>Startbetaling / engangsbeløp (valgfritt)</label>
+          <input type="text" inputmode="decimal" id="sim-startbetaling" placeholder="kr 0" oninput="simBeregn()"
+                 style="font-family:'DM Mono',monospace;">
+        </div>
+
+        <!-- Forlik -->
+        <div class="slider-wrap" style="margin-bottom:8px;">
+          <label>
+            Forlik – reduksjon av saldo
+            <span class="slider-value" id="sim-forlik-val" style="cursor:default;">0%</span>
+          </label>
+          <input type="range" id="sim-forlik" min="0" max="80" step="1" value="0"
+                 oninput="document.getElementById('sim-forlik-val').textContent=this.value+'%'; simBeregn()">
+          <div class="slider-marks"><span>0%</span><span>40%</span><span>80%</span></div>
+        </div>
+
+        <!-- Beste forslag -->
+        <button onclick="simBestForslag()" class="btn-secondary" style="width:100%;margin-top:12px;">
+          💡 Foreslå optimalt avdrag
+        </button>
+      </div>
+
+      <!-- OUTPUT (sticky) -->
+      <div class="panel panel-sticky">
+        <div class="panel-title">resultat live</div>
+
+        <!-- Realitetsindikator -->
+        <div id="sim-indikator" style="border-radius:8px;padding:12px 16px;margin-bottom:20px;display:none;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;" id="sim-indikator-label">–</div>
+          <div style="font-size:13px;" id="sim-indikator-tekst">–</div>
+        </div>
+
+        <!-- Nøkkeltall -->
+        <div id="sim-resultat" style="color:var(--text-muted);font-size:14px;">
+          Fyll inn saldo og månedlig avdrag for å simulere.
+        </div>
+
+        <!-- Tabell -->
+        <div id="sim-tabell-wrap" style="display:none;margin-top:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div class="panel-title" style="margin-bottom:0;">nedbetalingstabell</div>
+            <button onclick="simKopier()" class="btn-secondary" style="font-size:12px;padding:5px 12px;">📋 Kopier</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="avdrag-table" id="sim-tabell" style="font-size:12px;"></table>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
 </main>
@@ -1589,6 +1700,8 @@ function triggerBeregning(input) {
   const id = input.id;
   if (id === 'rn-fra' || id === 'rn-til') {
     beregnRenteFraDato();
+  } else if (id === 'sim-startdato') {
+    simBeregn();
   } else {
     beregnAvdrag();
   }
@@ -1596,6 +1709,20 @@ function triggerBeregning(input) {
 
 // Koble auto-format til alle datofelt ved oppstart
 document.addEventListener('DOMContentLoaded', () => {
+  // Musehjul på alle slidere
+  document.querySelectorAll('input[type="range"]').forEach(slider => {
+    slider.addEventListener('wheel', e => {
+      e.preventDefault();
+      const step = parseFloat(slider.step) || 1;
+      const min  = parseFloat(slider.min)  || 0;
+      const max  = parseFloat(slider.max);
+      const retning = e.deltaY < 0 ? 1 : -1;
+      const nyVerdi = Math.min(max, Math.max(min, parseFloat(slider.value) + retning * step));
+      slider.value = nyVerdi;
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+    }, { passive: false });
+  });
+
   // Dato-felt: formater og valider på blur + legg til kalenderknapp
   document.querySelectorAll('input[placeholder="dd.mm.åååå"]').forEach(input => {
     // Wrap i dp-wrap
@@ -1656,6 +1783,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (n) el.value = String(n).replace('.', ',');
     });
   });
+
+  // Simulator saldo-felt
+  const simSaldoEl = document.getElementById('sim-saldo');
+  if (simSaldoEl) {
+    simSaldoEl.addEventListener('blur', () => formatBelopFelt(simSaldoEl));
+    simSaldoEl.addEventListener('focus', () => {
+      const n = parseKr(simSaldoEl.value);
+      if (n) simSaldoEl.value = String(n).replace('.', ',');
+    });
+  }
 });
 
 function formatBelopFelt(input) {
@@ -3480,3 +3617,340 @@ function beregnRenteFraDato() {
 
 </body>
 </html>
+<script>
+/* ════════════════════════════════
+   SIMULATOR
+════════════════════════════════ */
+
+function simInit() {
+  const sats = rentesatsForDato(new Date());
+  document.getElementById('sim-rente-auto').textContent = String(sats).replace('.', ',') + '%';
+  const iDag = new Date();
+  const dd = String(iDag.getDate()).padStart(2,'0');
+  const mm = String(iDag.getMonth()+1).padStart(2,'0');
+  document.getElementById('sim-startdato').value = `${dd}.${mm}.${iDag.getFullYear()}`;
+}
+
+function simOppdaterSaldo(el) {
+  // Live tusenskilletegn
+  const raw = el.value;
+  const kommaIdx = raw.search(/[,.]/);
+  const heltall = (kommaIdx >= 0 ? raw.slice(0, kommaIdx) : raw).replace(/[^\d]/g, '');
+  const desimal = kommaIdx >= 0 ? raw.slice(kommaIdx) : '';
+  el.value = heltall.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f') + desimal;
+
+  // Sett slider-maks til saldo (1 avdrag = hele saldoen)
+  const saldo = parseKr(el.value) || 0;
+  if (saldo > 0) {
+    const slider = document.getElementById('sim-avdrag-slider');
+    slider.max = saldo;
+    slider.step = Math.max(50, Math.round(saldo / 100 / 50) * 50);
+    document.getElementById('sim-slider-maks-label').textContent = 'kr ' + saldo.toLocaleString('no-NO');
+    // Behold gjeldende verdi hvis den er innenfor, ellers sett til 10% av saldo
+    if (parseFloat(slider.value) > saldo) {
+      const forslag = Math.round(saldo * 0.1 / 50) * 50;
+      slider.value = forslag;
+      document.getElementById('sim-avdrag').value = forslag;
+      document.getElementById('sim-avdrag-val').textContent = 'kr ' + forslag.toLocaleString('no-NO');
+    }
+  }
+
+  simBeregn();
+}
+
+function simOppdaterAvdragSlider(val) {
+  val = parseInt(val);
+  document.getElementById('sim-avdrag-val').textContent = 'kr ' + val.toLocaleString('no-NO');
+  document.getElementById('sim-avdrag').value = val;
+  simBeregn();
+}
+
+function simOppdaterAvdragInput(val) {
+  const n     = parseKr(val) || 0;
+  const saldo = parseKr(document.getElementById('sim-saldo').value) || 0;
+  const maks  = saldo > 0 ? saldo : Math.max(parseInt(document.getElementById('sim-avdrag-slider').max), n);
+  const kappet = Math.min(n, maks);
+  const slider = document.getElementById('sim-avdrag-slider');
+  slider.max = maks;
+  slider.value = kappet;
+  document.getElementById('sim-slider-maks-label').textContent = 'kr ' + maks.toLocaleString('no-NO');
+  document.getElementById('sim-avdrag-val').textContent = 'kr ' + kappet.toLocaleString('no-NO');
+  simBeregn();
+}
+
+function simSettAvdrag(val) {
+  document.getElementById('sim-avdrag-slider').value = val;
+  document.getElementById('sim-avdrag').value = val;
+  document.getElementById('sim-avdrag-val').textContent = 'kr ' + val.toLocaleString('no-NO');
+  simBeregn();
+}
+
+function simBeregn() {
+  const saldoRå     = parseKr(document.getElementById('sim-saldo').value) || 0;
+  const avdrag      = parseKr(document.getElementById('sim-avdrag').value) || 0;
+  const rentePst    = rentesatsForDato(new Date());
+  const startbetal  = parseKr(document.getElementById('sim-startbetaling').value) || 0;
+  const forlikPst   = parseInt(document.getElementById('sim-forlik').value) || 0;
+  const startDatoEl = document.getElementById('sim-startdato').value.trim();
+  const startDato   = parseNO(startDatoEl) || new Date();
+
+  if (!saldoRå || !avdrag) {
+    document.getElementById('sim-resultat').innerHTML = '<span style="color:var(--text-muted)">Fyll inn saldo og månedlig avdrag for å simulere.</span>';
+    document.getElementById('sim-tabell-wrap').style.display = 'none';
+    document.getElementById('sim-indikator').style.display = 'none';
+    return;
+  }
+
+  // Bruk forliksreduksjon
+  const saldo = saldoRå * (1 - forlikPst / 100);
+  const dagligRente = rentePst / 100 / 365;
+
+  // Simuleringsfunksjon
+  function simuler(mndAvdrag) {
+    let rest = saldo - startbetal;
+    if (rest <= 0) return { terminer: [], totalBetalt: startbetal, totalRenter: 0, måneder: 0 };
+
+    const terminer = [];
+    let dato = new Date(startDato);
+    let totalBetalt = startbetal;
+    let totalRenter = 0;
+    let måneder = 0;
+    const MAKS = 600; // 50 år sikkerhetsgrense
+
+    while (rest > 0.01 && måneder < MAKS) {
+      // Renter for denne måneden (30 dager)
+      const renter = rest * dagligRente * 30;
+      totalRenter += renter;
+      rest += renter;
+
+      const betaling = Math.min(mndAvdrag, Math.round(rest * 100) / 100);
+      rest -= betaling;
+      totalBetalt += betaling;
+      måneder++;
+
+      const dd = String(dato.getDate()).padStart(2,'0');
+      const mm = String(dato.getMonth()+1).padStart(2,'0');
+      const yyyy = dato.getFullYear();
+      terminer.push({ dato: `${dd}.${mm}.${yyyy}`, betaling, renter: Math.round(renter*100)/100, rest: Math.max(0, Math.round(rest*100)/100) });
+
+      // Neste måned
+      dato = new Date(dato);
+      dato.setMonth(dato.getMonth() + 1);
+    }
+
+    return { terminer, totalBetalt: Math.round(totalBetalt*100)/100, totalRenter: Math.round(totalRenter*100)/100, måneder };
+  }
+
+  const res = simuler(avdrag);
+
+  if (res.måneder >= 600) {
+    document.getElementById('sim-resultat').innerHTML = `<div class="varsel varsel-feil">⚠ Avdraget er for lavt – renter vokser raskere enn nedbetalingen. Øk månedlig avdrag.</div>`;
+    document.getElementById('sim-tabell-wrap').style.display = 'none';
+    document.getElementById('sim-indikator').style.display = 'none';
+    document.getElementById('sim-antall-varsel').style.display = 'none';
+    return;
+  }
+
+  // Advarsel: mer enn 4 avdrag
+  document.getElementById('sim-antall-varsel').style.display = res.måneder > 4 ? 'block' : 'none';
+
+  // Nedbetalingstid som tekst
+  const år = Math.floor(res.måneder / 12);
+  const mnd = res.måneder % 12;
+  const tidTekst = år > 0 ? `${år} år${mnd > 0 ? ', ' + mnd + ' mnd' : ''}` : `${mnd} mnd`;
+
+  const sisteDato = res.terminer.length > 0 ? res.terminer[res.terminer.length-1].dato : '–';
+  const renteAndel = res.totalBetalt > 0 ? (res.totalRenter / res.totalBetalt * 100) : 0;
+
+  // Realitetsindikator
+  let indFarge, indBgFarge, indLabel, indTekst;
+  if (res.måneder <= 36) {
+    indFarge = '#166534'; indBgFarge = '#f0fdf4'; indLabel = '✓ Realistisk';
+    indTekst = `${tidTekst} – god plan med lav risiko for mislighold`;
+  } else if (res.måneder <= 60) {
+    indFarge = '#92400e'; indBgFarge = '#fff8e1'; indLabel = '⚠ Moderat';
+    indTekst = `${tidTekst} – akseptabelt, men vurder om skyldner klarer dette over tid`;
+  } else {
+    indFarge = '#991b1b'; indBgFarge = '#fde8e8'; indLabel = '⛔ Høy risiko';
+    indTekst = `${tidTekst} – høy sannsynlighet for mislighold. Vurder forlik eller høyere avdrag`;
+  }
+
+  const ind = document.getElementById('sim-indikator');
+  ind.style.display = 'block';
+  ind.style.background = indBgFarge;
+  ind.style.borderLeft = `3px solid ${indFarge}`;
+  document.getElementById('sim-indikator-label').style.color = indFarge;
+  document.getElementById('sim-indikator-label').textContent = indLabel;
+  document.getElementById('sim-indikator-tekst').style.color = indFarge;
+  document.getElementById('sim-indikator-tekst').textContent = indTekst;
+
+  // Forlik-info
+  const forlikInfo = forlikPst > 0
+    ? `<div style="background:var(--bg);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--text-muted);margin-top:8px;">Etter ${forlikPst}% forlik: saldo redusert fra ${kr(saldoRå)} til ${kr(saldo)}</div>`
+    : '';
+
+  document.getElementById('sim-resultat').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div style="background:var(--ink);border-radius:8px;padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.5);margin-bottom:4px;">Nedbetalingstid</div>
+        <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:#fff;">${tidTekst}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:14px 16px;border:1px solid var(--border);">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Totalt betalt</div>
+        <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--ink);">${kr(res.totalBetalt)}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:14px 16px;border:1px solid var(--border);">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Totale renter</div>
+        <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--high);">${kr(res.totalRenter)}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:14px 16px;border:1px solid var(--border);">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Renteandel</div>
+        <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--ink);">${renteAndel.toFixed(1)}%</div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.7;">
+      Første betaling: <strong style="color:var(--ink)">${res.terminer[0]?.dato || '–'}</strong><br>
+      Siste betaling: <strong style="color:var(--ink)">${sisteDato}</strong>
+    </div>
+    ${forlikInfo}
+    ${res.måneder > 1 ? `
+    <div style="margin-top:16px;background:#eef4ff;border-left:3px solid #3a7bd5;border-radius:6px;padding:10px 14px;font-size:13px;color:#1e3a6e;">
+      💬 <em>"Hvis du øker til ${kr(simAvdragForMåneder(saldo, dagligRente, res.måneder - 1))}, er du ferdig på ${(()=>{ const m=res.måneder-1; const å=Math.floor(m/12); const mn=m%12; return å>0?å+' år'+(mn>0?', '+mn+' mnd':''):mn+' mnd'; })()}"</em>
+    </div>` : ''}
+  `;
+
+  // Tabell (vis maks 60 rader for ytelse)
+  const visTerminer = res.terminer.slice(0, 60);
+  const harFlere = res.terminer.length > 60;
+
+  let tblHtml = `<thead><tr>
+    <th>Mnd</th><th>Forfall</th><th style="text-align:right">Avdrag</th>
+    <th style="text-align:right">Renter</th><th style="text-align:right">Restsaldo</th>
+  </tr></thead><tbody>`;
+
+  visTerminer.forEach((t, i) => {
+    const zebra = i % 2 === 0 ? '' : 'background:var(--bg);';
+    tblHtml += `<tr style="${zebra}">
+      <td class="label">${i+1}</td>
+      <td>${t.dato}</td>
+      <td style="text-align:right;font-weight:600">${tbl(t.betaling)}</td>
+      <td style="text-align:right;color:var(--high)">${tbl(t.renter)}</td>
+      <td style="text-align:right;font-weight:${t.rest < 0.01 ? '700' : '400'}">${tbl(t.rest)}</td>
+    </tr>`;
+  });
+
+  if (harFlere) {
+    tblHtml += `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);font-size:12px;padding:10px;">… og ${res.terminer.length - 60} terminer til</td></tr>`;
+  }
+  tblHtml += '</tbody>';
+
+  document.getElementById('sim-tabell').innerHTML = tblHtml;
+  document.getElementById('sim-tabell-wrap').style.display = 'block';
+
+  // Lagre for kopiering
+  window._simData = { res, saldo, saldoRå, avdrag, rentePst, tidTekst, forlikPst };
+}
+
+function simBestForslag() {
+  const saldoRå = parseKr(document.getElementById('sim-saldo').value) || 0;
+  if (!saldoRå) return;
+  const forlikPst  = parseInt(document.getElementById('sim-forlik').value) || 0;
+  const saldo      = saldoRå * (1 - forlikPst / 100);
+  const rentePst   = rentesatsForDato(new Date());
+  const dagligRente = rentePst / 100 / 365;
+
+  // Dynamisk målmåneder basert på saldo – korte avtaler for små krav
+  const målMåneder = saldo < 10000  ?  3
+                   : saldo < 25000  ?  6
+                   : saldo < 50000  ? 12
+                   : saldo < 100000 ? 18
+                   : saldo < 250000 ? 24
+                   :                  36;
+
+  const optimalt = simAvdragForMåneder(saldo, dagligRente, målMåneder);
+  simSettAvdrag(optimalt);
+  document.getElementById('sim-avdrag').value = optimalt;
+}
+
+function simAvdragForMåneder(saldo, dagligRente, målMåneder) {
+  // Binærsøk: finn avdrag som gir akkurat målMåneder terminer
+  let lo = saldo / (målMåneder + 1), hi = saldo;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    let rest = saldo; let mnd = 0;
+    while (rest > 0.01 && mnd < 500) {
+      rest += rest * dagligRente * 30;
+      rest -= Math.min(mid, rest);
+      mnd++;
+    }
+    if (mnd > målMåneder) lo = mid; else hi = mid;
+  }
+  return Math.ceil(hi / 10) * 10;
+}
+
+function simOptimaltAvdrag(saldo, dagligRente) {
+  // Binærsøk: finn avdrag som gir ca. 36 måneder
+  let lo = 1, hi = saldo;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    let rest = saldo; let mnd = 0;
+    while (rest > 0.01 && mnd < 500) {
+      rest += rest * dagligRente * 30;
+      rest -= Math.min(mid, rest);
+      mnd++;
+    }
+    if (mnd > 36) lo = mid; else hi = mid;
+  }
+  return Math.ceil(hi / 10) * 10;
+}
+
+function simSett4Avdrag() {
+  const saldo = parseKr(document.getElementById('sim-saldo').value) || 0;
+  if (!saldo) return;
+  const rentePst = rentesatsForDato(new Date());
+  const dagligRente = rentePst / 100 / 365;
+  // Beregn avdrag som gir akkurat 4 terminer
+  // Iterativt: start med saldo/4 og juster for renter
+  let avdrag = Math.ceil(saldo / 4);
+  for (let i = 0; i < 20; i++) {
+    let rest = saldo;
+    let mnd = 0;
+    while (rest > 0.01 && mnd < 10) {
+      rest += rest * dagligRente * 30;
+      rest -= Math.min(avdrag, rest);
+      mnd++;
+    }
+    if (mnd <= 4) break;
+    avdrag = Math.ceil(avdrag * 1.02);
+  }
+  simSettAvdrag(avdrag);
+  document.getElementById('sim-avdrag').value = avdrag;
+}
+
+function simKopier() {
+  const d = window._simData;
+  if (!d) return;
+  const { res, saldo, avdrag, rentePst, tidTekst, forlikPst, saldoRå } = d;
+
+  let tekst = `NEDBETALINGSPLAN\n${'─'.repeat(60)}\n`;
+  tekst += `Saldo:            ${kr(saldo)}${forlikPst > 0 ? ` (etter ${forlikPst}% forlik av ${kr(saldoRå)})` : ''}\n`;
+  tekst += `Månedlig avdrag:  ${kr(avdrag)}\n`;
+  tekst += `Rentesats:        ${rentePst}% p.a.\n`;
+  tekst += `Nedbetalingstid:  ${tidTekst}\n`;
+  tekst += `Totalt betalt:    ${kr(res.totalBetalt)}\n`;
+  tekst += `Totale renter:    ${kr(res.totalRenter)}\n`;
+  tekst += `${'─'.repeat(60)}\n`;
+  tekst += `${'Mnd'.padEnd(5)}${'Forfall'.padEnd(14)}${'Avdrag'.padEnd(13)}${'Renter'.padEnd(13)}Restsaldo\n`;
+  tekst += `${'─'.repeat(60)}\n`;
+  res.terminer.forEach((t, i) => {
+    tekst += `${String(i+1).padEnd(5)}${t.dato.padEnd(14)}${kr(t.betaling).padEnd(13)}${kr(t.renter).padEnd(13)}${kr(t.rest)}\n`;
+  });
+
+  kopierTekst(tekst, 'Nedbetalingsplan kopiert!');
+}
+
+// Init simulator når fanen åpnes
+document.addEventListener('DOMContentLoaded', () => {
+  simInit();
+});
+</script>
