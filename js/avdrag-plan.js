@@ -364,7 +364,7 @@ function lastNedAvdragPDF() {
   if (!meta || !terminer) { toast('Beregn avdragsplan først.', 'info'); return; }
   if (!window.jspdf && !window.jsPDF) { toast('PDF-biblioteket er ikke lastet ennå. Prøv igjen om et øyeblikk.', 'feil'); return; }
 
-  const { jsPDF } = window.jspdf || window;
+  let jsPDF; try { jsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF; if (!jsPDF) throw new Error('jsPDF ikke funnet'); } catch(e) { toast('PDF-feil: ' + e.message, 'feil'); return; }
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   const marg = 16;
@@ -601,7 +601,7 @@ function lastNedAvdragPDF() {
     doc.text(`Side ${i} av ${sider}`, 210 - marg, 295, { align: 'right' });
   }
 
-  doc.save('avdragsplan.pdf');
+  try { doc.save('avdragsplan.pdf'); toast('PDF lastet ned!', 'ok', 2000); } catch(e) { toast('PDF-feil ved lagring: ' + e.message, 'feil'); }
 }
 function kopierAvdrag() {
   const rows = document.querySelectorAll('#avdrag-tabell tbody tr');
