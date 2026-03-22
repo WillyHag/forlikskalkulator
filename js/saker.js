@@ -11,9 +11,18 @@ const THEME_KEY = 'forlikskalkulator_theme';
 
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
-  const btn = document.getElementById('theme-toggle');
-  if (btn) {
-    btn.textContent = theme === 'dark' ? '☀️ Lys modus' : '🌙 Mørk modus';
+  const isDark = theme === 'dark';
+  const track = document.getElementById('theme-toggle-track');
+  const thumb = document.getElementById('theme-toggle-thumb');
+  const label = document.getElementById('theme-toggle-label');
+  if (track) {
+    track.style.background = isDark ? 'var(--accent)' : 'rgba(255,255,255,0.25)';
+  }
+  if (thumb) {
+    thumb.style.left = isDark ? '23px' : '3px';
+  }
+  if (label) {
+    label.textContent = isDark ? '🌙' : '☀️';
   }
 }
 
@@ -125,7 +134,7 @@ function visAktivSakIndikator() {
   }
   if (sak) {
     el.innerHTML = `
-      <span>✏ Redigerer: <strong>${sak.navn}</strong> – endringer lagres automatisk <span style="opacity:0.6;font-weight:400;">· Ctrl+S for å lagre manuelt</span></span>
+      <span>✏ Redigerer: <strong>${sak.navn}</strong> – endringer lagres automatisk</span>
       <button onclick="_aktivSakId=null;document.getElementById('aktiv-sak-banner').remove()" style="background:none;border:none;color:#3a7bd5;font-size:12px;font-weight:600;cursor:pointer;">Koble fra</button>
     `;
     el.style.display = 'flex';
