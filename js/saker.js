@@ -58,7 +58,7 @@ function samleSakData() {
     'a-forfall','a-iv-forfall','a-bo-dato','a-tung-salar','a-tung-salar-fremtidig',
     'a-mnd','a-mnd-belop','a-dato','a-dekning','a-salar-dato',
     'a-avdragssalar-fritak','a-bo-ikke-sendt',
-    'rn-hoved','rn-fra','rn-til',
+    'rn-hoved','rn-fra','rn-til','sak-referanse',
   ];
   const data = {};
   ids.forEach(id => {
@@ -115,9 +115,9 @@ let _aktivSakId = null;
 
 function lastSak(id) {
   const sak = hentAlleSaker().find(s => s.id === id);
-  if (!sak) return;
+  if (!sak) return;  if (_aktivSakId && !confirm('Hente "'+sak.navn+'"? Ulagrede endringer vil ga tapt.')) return;
   _aktivSakId = id;
-  gjenopprettSakData(sak.data);
+  gjenopprettSakData(sak.data); var ref=document.getElementById('sak-referanse'); if(ref) ref.value=sak.data['sak-referanse']||sak.navn;
   lukkSaker();
   visAktivSakIndikator();
 }
@@ -167,7 +167,7 @@ function visSakerListe() {
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--bg);">
       <div>
         <div style="font-weight:600;font-size:14px;color:var(--ink);">${s.navn}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Lagret ${s.dato}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Lagret ${s.dato} · ${(function(){var h=parseFloat((s.data['a-hovedstol']||'').replace(/[^\d,.]/g,'').replace(',','.'));var m=s.data['a-mnd']||'';return h?(h.toLocaleString('no-NO')+(m?' · '+m+' avdrag':'')):'';})()}</div>
       </div>
       <div style="display:flex;gap:8px;">
         <button onclick="lastSak(${s.id})" style="background:var(--ink);color:var(--white);border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">Hent</button>
