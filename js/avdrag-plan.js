@@ -362,9 +362,9 @@ function lastNedAvdragPDF() {
   const meta    = window._avdragsMeta;
   const terminer = window._avdragsTerminer;
   if (!meta || !terminer) { toast('Beregn avdragsplan først.', 'info'); return; }
-  if (!window.jspdf) { toast('PDF-biblioteket er ikke lastet ennå. Prøv igjen om et øyeblikk.', 'feil'); return; }
+  if (!window.jspdf && !window.jsPDF) { toast('PDF-biblioteket er ikke lastet ennå. Prøv igjen om et øyeblikk.', 'feil'); return; }
 
-  const { jsPDF } = window.jspdf;
+  const { jsPDF } = window.jspdf || window;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   const marg = 16;
