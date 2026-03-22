@@ -153,7 +153,7 @@ function autolagreSak() {
   lagreSaker(saker);
 }
 
-function visSakerListe() {
+function visSakerListe() { filtrerSaker(); return; // legacy
   const saker = hentAlleSaker();
   const liste = document.getElementById('saker-liste');
   if (!liste) return;
@@ -183,7 +183,7 @@ function visSaker() {
   modal.style.display = 'flex';
 }
 
-function lukkSaker() {
+function slettAlleSaker() {   if (!confirm('Slett alle lagrede saker? Dette kan ikke angres.')) return;   lagreSaker([]);   _aktivSakId = null;   const banner = document.getElementById('aktiv-sak-banner');   if (banner) banner.remove();   visSakerListe();   toast('Alle saker slettet', 'ok', 2000); } function filtrerSaker() {   const q = (document.getElementById('saker-sok')?.value || '').toLowerCase();   const saker = hentAlleSaker();   const filtrert = q ? saker.filter(s => s.navn.toLowerCase().includes(q)) : saker;   const liste = document.getElementById('saker-liste');   if (!liste) return;   if (filtrert.length === 0) {     liste.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px 0;">Ingen saker funnet.</div>';     return;   }   liste.innerHTML = filtrert.map(s => `     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--bg);">       <div>         <div style="font-weight:600;font-size:14px;color:var(--ink);">${s.navn}</div>         <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Lagret ${s.dato} · ${(function(){var h=parseFloat((s.data['a-hovedstol']||'').replace(/[^\d,.]/g,'').replace(',','.'));var m=s.data['a-mnd']||'';return h?(h.toLocaleString('no-NO')+(m?' · '+m+' avdrag':'')):'';})()}</div>       </div>       <div style="display:flex;gap:8px;">         <button onclick="lastSak(${s.id})" style="background:var(--ink);color:var(--white);border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">Hent</button>         <button onclick="slettSak(${s.id})" style="background:var(--bg-dark);color:var(--text-muted);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;" title="Slett">✕</button>       </div>     </div>   `).join(''); } function lukkSaker() {
   document.getElementById('saker-modal').style.display = 'none';
 }
 
