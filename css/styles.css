@@ -852,3 +852,33 @@ button {
 .satser-kilde-lenke:hover {
   text-decoration: underline;
 }
+
+
+/* Modal-boks: fast bakgrunn i lys- og mørk-modus */
+#satser-modal > div {
+  background: #ffffff !important;
+  color: #1e1e2e !important;
+}
+
+:root[data-theme="dark"] #satser-modal > div {
+  background: #1a1d2e !important;
+  color: #e8ecf4 !important;
+}
+
+/* Salær-kortenes verdier: bruk mørk grønn i lys-modus, lys grønn i mørk-modus */
+#satser-modal .satser-kort-verdi {
+  color: #1a7a4a;
+}
+
+:root[data-theme="dark"] #satser-modal .satser-kort-verdi {
+  color: #4ade80;
+}
+
+/* Kilde-lenker: blaa i lys-modus, lys grønn i mørk-modus */
+#satser-modal .satser-kilde-lenke {
+  color: #1a56b0;
+}
+
+:root[data-theme="dark"] #satser-modal .satser-kilde-lenke {
+  color: #4ade80;
+}
