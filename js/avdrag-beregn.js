@@ -303,20 +303,6 @@ function beregnAvdrag() {
     </div>`;
   }
 
-  // Kopier-knapp ID for sammendrag
-  const kopierSummaryBtn = document.getElementById('kopier-sammendrag-btn') ||
-    (() => {
-      const btn = document.createElement('button');
-      btn.id = 'kopier-sammendrag-btn';
-      btn.className = 'btn-secondary';
-      btn.style.cssText = 'font-size:11px;padding:4px 10px;position:absolute;right:0;top:-2px;';
-      btn.textContent = '📋 Kopier';
-      btn.onclick = () => kopierAvdragSammendrag();
-      const panelTitle = document.querySelector('#tab-avdrag .panel-sticky .panel-title');
-      if (panelTitle) { panelTitle.style.position = 'relative'; panelTitle.appendChild(btn); }
-      return btn;
-    })();
-
   document.getElementById('avdrag-summary').innerHTML = varsler + `
     <div class="rente-result" style="margin-bottom:16px;">
       <div class="rente-box" style="border-left-color:var(--ink)" id="summary-totalbetalt">
@@ -459,17 +445,18 @@ function beregnAvdrag() {
     manuellRedigering: false,
   };
 
-  // Bygg terminer – datoer alltid fra startDato, bevar manuelle beløp hvis antall er uendret
+  // Bygg terminer – bevar manuelle beløp selv om antall terminer endres
   const gammleTerminer = window._avdragsTerminer;
   const harManuelle = gammleTerminer?.some(t => t.belop !== null) || false;
   window._avdragsMeta.manuellRedigering = harManuelle;
 
   window._avdragsTerminer = [];
   for (let i = 0; i < mnd; i++) {
+    const gammel = gammleTerminer?.[i] || null;
     window._avdragsTerminer.push({
-      dato:  leggTilAvdragDato(startDato, i),
-      // Bevar manuelt satte beløp kun hvis antall terminer er uendret
-      belop: (gammleTerminer && gammleTerminer.length === mnd) ? gammleTerminer[i].belop : null,
+      dato:          leggTilAvdragDato(startDato, i),
+      belop:         gammel ? gammel.belop         : null,
+      _manuellBelop: gammel ? (gammel._manuellBelop || false) : false,
     });
   }
 
