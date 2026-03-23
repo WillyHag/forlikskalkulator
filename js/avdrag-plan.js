@@ -442,7 +442,7 @@ function lastNedAvdragPDF() {
   linje('Hva skylder du totalt ved avtaleinngåelse?', marg + 4, y + 6, 8, false, [80,90,110]);
   linje(kr(åpningsbalanse), 210 - marg - 4, y + 6, 8, true, [30,30,46]);
   
-  // Dekomponering i én linje
+  let delTekst = `Hovedstol ${kr(meta.startSaldoHovedstol)}`;         if (meta.startSaldoSalar > 0) delTekst += ` + Salær ${kr(meta.startSaldoSalar)}`;         // Dekomponering i én linje
   if (meta.startSaldoRettslige > 0)   delTekst += `  +  Purregebyr/inkassogebyr ${kr(meta.startSaldoRettslige)}`;
   if (meta.startSaldoRenter > 0)      delTekst += `  +  Renter ${kr(meta.startSaldoRenter)}`;
   linje(delTekst, marg + 4, y + 13, 7, false, [100,110,130]);
