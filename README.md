@@ -24,7 +24,8 @@ Et nettleserbasert verktøy for saksbehandlere i inkasso og innfordring. Kjører
     ├── avdrag-plan.js      # Avdragsplan – rendering, redigering, PDF-eksport
     ├── simulator.js        # «Hva hvis?»-simulator
     ├── saker.js            # Lagrede saker, tabs, tema
-    └── eksport.js          # PDF- og CSV-eksport
+    ├── eksport.js          # PDF- og CSV-eksport
+    └── satser-modal.js     # Modal med gjeldende inkassosatser og lovlenker
 ```
 
 > **Viktig:** Script-filene må lastes i denne rekkefølgen i `index.html`. Hver fil avhenger av funksjoner definert i filene over den.
