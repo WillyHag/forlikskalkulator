@@ -42,15 +42,13 @@ function beregnAvdragsPlan(terminer, meta) {
     // Terminbeløp:
     // 1. Manuelt satt beløp brukes direkte (capper til gjenstående)
     // 2. Ingenting gjenstår → hopp over terminen (betaling = 0)
-    // 3. Siste planlagte termin tar alltid eksakt rest
+    // 3. Alle terminer bruker fastMndBelop – inkl. siste (like store avdrag)
     // 4. Øvrige terminer: fastMndBelop (capper til gjenstående)
     let betaling;
     if (gjenstaar <= 0.005) {
       betaling = 0;
     } else if (terminer[i].belop !== null) {
       betaling = Math.min(terminer[i].belop, Math.round(gjenstaar * 100) / 100);
-    } else if (erSiste) {
-      betaling = Math.round(gjenstaar * 100) / 100;
     } else {
       betaling = Math.min(fastMndBelop, Math.round(gjenstaar * 100) / 100);
     }
@@ -184,9 +182,6 @@ function renderAvdragsplan() {
       if (meta.tungPalopDato > forrigeF && meta.tungPalopDato <= r.forfallDato) {
         merknader.push({ termin: r.nr, dato: formatDato(r.forfallDato), tekst: `Tungt salær påløper ${formatDato(meta.tungPalopDato)}` });
       }
-    }
-    if (r.erSiste && raderVist.length > 1 && r.betaling > meta.fastMndBelop + 0.01) {
-      merknader.push({ termin: r.nr, dato: formatDato(r.forfallDato), tekst: 'Inkl. løpende renter' });
     }
 
     const manuellBelop = !r.ekstraTermin && terminer[r.nr - 1] && terminer[r.nr - 1].belop !== null;
@@ -422,7 +417,6 @@ function lastNedAvdragPDF() {
 
   // Finn første faktiske terminbeløp (for konsistens-visning)
   const førsteTermin = rader[0]?.betaling ?? 0;
-  const sisteTermin  = rader[rader.length - 1]?.betaling ?? 0;
 
   // Sjekk om renter kun er på siste termin
   const renterKunSiste = rader.length > 1 &&
@@ -469,12 +463,6 @@ function lastNedAvdragPDF() {
     y += erTotal ? 6 : 5;
   });
 
-  // Merknad om siste termin avviker
-  if (Math.abs(sisteTermin - førsteTermin) > 0.5) {
-    sjekkNySide(8);
-    linje(`* Siste termin er ${kr(sisteTermin)} – restbeløp etter renter.`, marg, y, 7.5, false, [120,120,140]);
-    y += 6;
-  }
 
   y += 4;
 
