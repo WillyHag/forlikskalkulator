@@ -650,7 +650,7 @@ function nullstillSkjema() {
   if (mvaEl) mvaEl.value = 'ja';
   const dekningEl = document.getElementById('a-dekning');
   if (dekningEl) dekningEl.value = 'SHR';
-  document.getElementById('a-bo-ikke-sendt').checked = false;
+  document.getElementById('a-bo-ikke-sendt').checked = false;   const foerBOPanel = document.getElementById('foer-bo-panel');   if (foerBOPanel) foerBOPanel.style.display = 'none';
   const boDatoEl = document.getElementById('a-bo-dato');
   if (boDatoEl) { boDatoEl.disabled = false; boDatoEl.style.opacity = '1'; }
   ['avdragssalar-varsel','tung-salar-wrap','tung-salar-fremtidig',
