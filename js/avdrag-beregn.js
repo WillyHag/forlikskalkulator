@@ -277,7 +277,7 @@ function beregnAvdrag() {
         foerBOMsg = `⚠ <strong>Kravet er under kr 2 500</strong> – det skal ikke inngås avdragsavtale. Skyldner betaler innen fristen i inkassovarselet.`;
       } else {
         const minFoerste = totalVedForfall * 0.25;
-        foerBOMsg = `⚠ <strong>IV ikke forfalt:</strong> 25% (${kr(minFoerste)}) betales innen <strong>${ivForfallDato ? formatDato(ivForfallDato) : '–'}</strong>. Restbeløp deles i maks 3 avdrag. Ingen salær legges på.`;
+        foerBOMsg = `⚠ <strong>IV ikke forfalt:</strong> 25% (${kr(minFoerste)}) betales innen <strong>${ivForfallDato ? formatDato(ivForfallDato) : '–'}</strong>. Restbeløp deles i 3 månedlige avdrag (totalt 4 terminer). Ingen salær legges på.`;
       }
     } else {
       const minFoerste = totalVedForfall * 0.25;
