@@ -2,7 +2,7 @@ function beregnAvdragsPlan(terminer, meta) {
   const { startSaldoHovedstol, startSaldoSalar, startSaldoRettslige,
           startSaldoRenter, fastMndBelop, dekning,
           tungPalopDato, tungPaloppt, salarDifferanse,
-          salarPalopDato, lettSalarIkkeEndaPaloppt, mnd } = meta;
+          salarPalopDato, lettSalarIkkeEndaPaloppt, ivIkkeForfaltFoerBO, mnd } = meta;
 
   let saldoHovedstol = startSaldoHovedstol;
   let saldoSalar     = startSaldoSalar;

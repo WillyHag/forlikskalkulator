@@ -154,8 +154,8 @@ function beregnAvdrag() {
   const foerBOTekst  = document.getElementById('foer-bo-varsel-tekst');
 
   if (foerBO) {
-    // Maks avdrag: 3 hvis IV ikke forfalt (25% + 3 avdrag), 4 hvis IV forfalt
-    const maksAvdrag = ivIkkeForfaltFoerBO ? 3 : 4;
+    // Maks avdrag: 4 for begge scenarioer (termin 1 = 25%, termin 2-4 = rest i 3 avdrag)
+    const maksAvdrag = 4;
 
     if (!mnd && !fastMndBelop) {
       mnd = maksAvdrag;
@@ -384,10 +384,16 @@ function beregnAvdrag() {
       sRent += (sh + ss) * sats * dager;
 
       const gjenstaar = ss + sr + sh + sRent;
-      // Siste termin: ta eksakt rest – dette speiler beregnAvdragsPlan
-      const bet = i === antMnd - 1
-        ? Math.round(gjenstaar * 100) / 100
-        : Math.min(prøveBelop, gjenstaar);
+      // IV ikke forfalt: termin 1 er alltid 25% (fast), øvrige bruker prøveBelop
+      // Siste termin: ta eksakt rest
+      let bet;
+      if (ivIkkeForfaltFoerBO && i === 0) {
+        bet = Math.min(Math.ceil(totalVedForfall * 0.25 * 100) / 100, gjenstaar);
+      } else if (i === antMnd - 1) {
+        bet = Math.round(gjenstaar * 100) / 100;
+      } else {
+        bet = Math.min(prøveBelop, gjenstaar);
+      }
 
       let r = bet;
       const tR2 = Math.min(r, sr); sr -= tR2; r -= tR2;
@@ -431,6 +437,7 @@ function beregnAvdrag() {
   window._avdragsMeta = {
     startSaldoHovedstol: hovedstol,
     startSaldoSalar: salarNaa + avdragsgebyr,
+    avdragsgebyr,
     startSaldoRettslige: rettslige,
     startSaldoRenter: totalRenterIdag + rentFremTilForfall,
     forrigeDato: new Date(startDato),
@@ -441,6 +448,7 @@ function beregnAvdrag() {
     salarDifferanse,
     salarPalopDato,
     lettSalarIkkeEndaPaloppt,
+    ivIkkeForfaltFoerBO: !!ivIkkeForfaltFoerBO,
     mnd,
     manuellRedigering: false,
   };
@@ -450,14 +458,37 @@ function beregnAvdrag() {
   const harManuelle = gammleTerminer?.some(t => t.belop !== null) || false;
   window._avdragsMeta.manuellRedigering = harManuelle;
 
+  // IV ikke forfalt: termin 1 = IV-forfallsdato med 25% automatisk satt
+  // Termin 2-4 = månedlige avdrag fra måneden etter IV-forfall
+  const foersteBelop = ivIkkeForfaltFoerBO
+    ? Math.ceil(totalVedForfall * 0.25 * 100) / 100
+    : null;
+  const andreDato = ivIkkeForfaltFoerBO && ivForfallDato
+    ? leggTilMnd(ivForfallDato, 1)
+    : null;
+
   window._avdragsTerminer = [];
   for (let i = 0; i < mnd; i++) {
     const gammel = gammleTerminer?.[i] || null;
-    window._avdragsTerminer.push({
-      dato:          leggTilAvdragDato(startDato, i),
-      belop:         gammel ? gammel.belop         : null,
-      _manuellBelop: gammel ? (gammel._manuellBelop || false) : false,
-    });
+    let dato, belop, manuell;
+    if (ivIkkeForfaltFoerBO) {
+      if (i === 0) {
+        // Termin 1: IV-forfallsdato, 25% automatisk (men kan overstyres)
+        dato   = new Date(ivForfallDato);
+        belop  = gammel?._manuellBelop ? gammel.belop : foersteBelop;
+        manuell = gammel?._manuellBelop || false;
+      } else {
+        // Termin 2-4: månedlige avdrag fra måneden etter IV-forfall
+        dato   = leggTilMnd(andreDato, i - 1);
+        belop  = gammel?._manuellBelop ? gammel.belop : null;
+        manuell = gammel?._manuellBelop || false;
+      }
+    } else {
+      dato    = leggTilAvdragDato(startDato, i);
+      belop   = gammel ? gammel.belop : null;
+      manuell = gammel ? (gammel._manuellBelop || false) : false;
+    }
+    window._avdragsTerminer.push({ dato, belop, _manuellBelop: manuell });
   }
 
   renderAvdragsplan();
