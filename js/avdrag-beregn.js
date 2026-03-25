@@ -149,7 +149,7 @@ function beregnAvdrag() {
   const ivForfalt = ivForfallDato && ivForfallDato < iDag;
   const ivIkkeForfaltFoerBO = foerBOTidlig && ivForfallDato && ivForfallDato >= iDag;
   const boIkkeSendt = boIkkeSendtTidlig;
-  const foerBO    = boIkkeSendt;
+  const foerBO    = boIkkeSendt && ivForfalt;
   const foerBOVarsel = document.getElementById('foer-bo-varsel');
   const foerBOTekst  = document.getElementById('foer-bo-varsel-tekst');
 
