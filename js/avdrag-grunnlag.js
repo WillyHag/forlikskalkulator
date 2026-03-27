@@ -220,14 +220,14 @@ function validerPurregebyr() {
 }
 
 function oppdaterFoerBO() {
-  const forfDato     = parseNO(document.getElementById('a-forfall').value.trim());
-  const ivForfallStr = document.getElementById('a-iv-forfall').value.trim();
-  const ivForfallDato = parseNO(ivForfallStr) || forfDato;
-  const boDato       = parseNO(document.getElementById('a-bo-dato').value.trim());
-  const iDag         = new Date(); iDag.setHours(0,0,0,0);
-  const boIkkeSendt  = document.getElementById('a-bo-ikke-sendt').checked;
-
-  // Valideringen av IV-forfallsdato skjer i autoFormatDato
+  const forfDato      = parseNO(document.getElementById('a-forfall').value.trim());
+  const ivForfallStr  = document.getElementById('a-iv-forfall').value.trim();
+  // Bruk KUN IV-forfallsdato – ikke fall tilbake på fakturadato
+  // Panelene skal kun vises når saksbehandler har fylt inn IV-forfallsdato
+  const ivForfallDato = parseNO(ivForfallStr);
+  const boDato        = parseNO(document.getElementById('a-bo-dato').value.trim());
+  const iDag          = new Date(); iDag.setHours(0,0,0,0);
+  const boIkkeSendt   = document.getElementById('a-bo-ikke-sendt').checked;
 
   const panel = document.getElementById('foer-bo-panel');
   if (!panel) { beregnAvdrag(); return; }
@@ -235,14 +235,16 @@ function oppdaterFoerBO() {
   if (boIkkeSendt) {
     panel.style.display = 'block';
 
-    const ivForfalt = ivForfallDato && ivForfallDato <= iDag;
+    const ivForfalt    = ivForfallDato && ivForfallDato <= iDag;
+    const ivIkkeSatt   = !ivForfallDato;
 
-    document.getElementById('foer-bo-iv-ikke-forfalt').style.display = ivForfalt ? 'none' : 'block';
+    // Vis ingenting før IV-forfallsdato er fylt inn
+    document.getElementById('foer-bo-iv-ikke-forfalt').style.display = (!ivIkkeSatt && !ivForfalt) ? 'block' : 'none';
     document.getElementById('foer-bo-iv-forfalt').style.display      = ivForfalt ? 'block' : 'none';
     document.getElementById('foer-bo-salar-dato-wrap').style.display = ivForfalt ? 'block' : 'none';
 
-    // Scenario 1: vis under/over 2500-panel
-    if (!ivForfalt) {
+    // Scenario: IV ikke forfalt – vis under/over 2500-panel kun når IV-dato er satt
+    if (!ivIkkeSatt && !ivForfalt) {
       const hovedstol = parseKr(document.getElementById('a-hovedstol').value) || 0;
       const under2500 = document.getElementById('foer-bo-under-2500');
       const over2500  = document.getElementById('foer-bo-over-2500');
@@ -250,7 +252,7 @@ function oppdaterFoerBO() {
       if (over2500)  over2500.style.display  = (hovedstol >= 2500) ? 'block' : 'none';
     }
 
-    if (!ivForfalt && ivForfallDato) {
+    if (!ivIkkeSatt && !ivForfalt) {
       document.getElementById('foer-bo-forfall-dato').textContent = formatDato(ivForfallDato);
     }
   } else {
